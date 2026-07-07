@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <!-- Franja roja izquierda -->
+  <rect x="0" y="0" width="200" height="400" fill="#D91023"/>
+  
+  <!-- Franja blanca central -->
+  <rect x="200" y="0" width="200" height="400" fill="#FFFFFF"/>
+  
+  <!-- Franja roja derecha -->
+  <rect x="400" y="0" width="200" height="400" fill="#D91023"/>
+</svg>

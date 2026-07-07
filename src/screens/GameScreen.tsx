@@ -1,0 +1,793 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions, PanResponder, TouchableOpacity, Image, Animated } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import Svg, { Line } from 'react-native-svg';
+import { useChapasStore } from '../store/chapasStore';
+import { FORMATIONS, TEAMS, FIELDS, FormationId, TeamId } from '../data/chapasData';
+import { colors } from '../theme/colors';
+import { ChapaModular } from '../components/ChapaModular';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const BOARD_WIDTH = SCREEN_WIDTH;
+const BOARD_HEIGHT = SCREEN_HEIGHT * 0.72;
+const CHAPA_RADIUS = 16;
+const BALL_RADIUS = 10;
+const GOAL_WIDTH = 120;
+const FRICTION = 0.95;
+const MIN_VELOCITY = 0.1;
+const RESTITUTION = 0.7;
+
+type EntityType = 'ball' | 'p1' | 'p2';
+
+type Entity = {
+  id: number;
+  type: EntityType;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  mass: number;
+  number?: number;
+};
+
+const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId): Entity[] => {
+  const entities: Entity[] = [];
+  let idCounter = 0;
+
+  entities.push({
+    id: idCounter++, type: 'ball',
+    x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2,
+    vx: 0, vy: 0, radius: BALL_RADIUS, mass: 1
+  });
+
+  const p1Form = FORMATIONS[p1FormId];
+  const p2Form = FORMATIONS[p2FormId];
+
+  p1Form.points.forEach(pt => {
+    entities.push({
+      id: idCounter++, type: 'p1',
+      x: BOARD_WIDTH * pt.xMultiplier,
+      y: (BOARD_HEIGHT / 2) + ((BOARD_HEIGHT / 2) * pt.yMultiplier),
+      vx: 0, vy: 0, radius: CHAPA_RADIUS, mass: 6,
+      number: pt.number
+    });
+  });
+
+  p2Form.points.forEach(pt => {
+    entities.push({
+      id: idCounter++, type: 'p2',
+      x: BOARD_WIDTH * (1 - pt.xMultiplier),
+      y: (BOARD_HEIGHT / 2) - ((BOARD_HEIGHT / 2) * pt.yMultiplier),
+      vx: 0, vy: 0, radius: CHAPA_RADIUS, mass: 6,
+      number: pt.number
+    });
+  });
+
+  return entities;
+};
+
+export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { mode, p1Team, p2Team, p1Formation, p2Formation, fieldId, matchId } = route.params;
+  const { addWin, addCoins } = useChapasStore();
+  const team1 = TEAMS[p1Team];
+  const team2 = TEAMS[p2Team];
+  const currentField = FIELDS[fieldId] || FIELDS['stadium-green'];
+
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [activePlayer, setActivePlayer] = useState<1 | 2>(1);
+  const [score, setScore] = useState({ 1: 0, 2: 0 });
+  const [winner, setWinner] = useState<1 | 2 | null>(null);
+  
+  const [goalBanner, setGoalBanner] = useState<{ scorer: 1 | 2; text: string } | null>(null);
+  const goalScale = useRef(new Animated.Value(0)).current;
+  const goalOpacity = useRef(new Animated.Value(0)).current;
+
+  const [isAiming, setIsAiming] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragCurrent, setDragCurrent] = useState({ x: 0, y: 0 });
+  const [activeEntityId, setActiveEntityId] = useState<number | null>(null);
+
+  const entitiesRef = useRef<Entity[]>([]);
+  const isMovingRef = useRef(false);
+  const animationFrameRef = useRef<number>(undefined);
+
+  // Ref to hold latest state for PanResponder closures
+  const gameStateRef = useRef({
+    activePlayer, winner, mode, isAiming, activeEntityId, dragStart, dragCurrent
+  });
+
+  // Update ref on every render
+  gameStateRef.current = {
+    activePlayer, winner, mode, isAiming, activeEntityId, dragStart, dragCurrent
+  };
+
+  useEffect(() => {
+    resetBoard();
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, []);
+
+  const resetBoard = () => {
+    entitiesRef.current = createInitialFormation(p1Formation, p2Formation);
+    setEntities([...entitiesRef.current]);
+    isMovingRef.current = false;
+  };
+
+  const handleBackToMenu = () => {
+    navigation.navigate('MainTabs');
+  };
+
+  const updatePhysics = () => {
+    if (!isMovingRef.current) return;
+
+    let allStopped = true;
+    const currentEntities = entitiesRef.current;
+    let goalScored: 1 | 2 | null = null;
+
+    const goalLeft = (BOARD_WIDTH - GOAL_WIDTH) / 2;
+    const goalRight = goalLeft + GOAL_WIDTH;
+
+    for (let i = 0; i < currentEntities.length; i++) {
+      let e = currentEntities[i];
+
+      if (Math.abs(e.vx) > MIN_VELOCITY || Math.abs(e.vy) > MIN_VELOCITY) {
+        allStopped = false;
+        e.x += e.vx;
+        e.y += e.vy;
+        e.vx *= FRICTION;
+        e.vy *= FRICTION;
+
+        const insets = currentField.wallInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+        const BOUNDARY_LEFT = insets.left;
+        const BOUNDARY_RIGHT = BOARD_WIDTH - insets.right;
+        const BOUNDARY_TOP = insets.top;
+        const BOUNDARY_BOTTOM = BOARD_HEIGHT - insets.bottom;
+
+        if (e.x - e.radius < BOUNDARY_LEFT) { e.x = BOUNDARY_LEFT + e.radius; e.vx *= -RESTITUTION; }
+        else if (e.x + e.radius > BOUNDARY_RIGHT) { e.x = BOUNDARY_RIGHT - e.radius; e.vx *= -RESTITUTION; }
+
+        const inGoalXBounds = e.x > goalLeft && e.x < goalRight;
+
+        if (e.y - e.radius < BOUNDARY_TOP) {
+          if (inGoalXBounds) {
+            if (e.type === 'ball' && e.y < BOUNDARY_TOP - e.radius) goalScored = 1;
+          } else {
+            e.y = BOUNDARY_TOP + e.radius; e.vy *= -RESTITUTION;
+          }
+        } else if (e.y + e.radius > BOUNDARY_BOTTOM) {
+          if (inGoalXBounds) {
+            if (e.type === 'ball' && e.y > BOUNDARY_BOTTOM + e.radius) goalScored = 2;
+          } else {
+            e.y = BOUNDARY_BOTTOM - e.radius; e.vy *= -RESTITUTION;
+          }
+        }
+      } else {
+        e.vx = 0;
+        e.vy = 0;
+      }
+    }
+
+    if (goalScored) {
+      isMovingRef.current = false;
+      handleGoal(goalScored);
+      return;
+    }
+
+    for (let i = 0; i < currentEntities.length; i++) {
+      for (let j = i + 1; j < currentEntities.length; j++) {
+        let e1 = currentEntities[i];
+        let e2 = currentEntities[j];
+
+        let dx = e2.x - e1.x;
+        let dy = e2.y - e1.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        let minDist = e1.radius + e2.radius;
+
+        if (dist < minDist) {
+          allStopped = false;
+          let nx = dx / dist;
+          let ny = dy / dist;
+          let vxRel = e1.vx - e2.vx;
+          let vyRel = e1.vy - e2.vy;
+          let velAlongNormal = vxRel * nx + vyRel * ny;
+
+          if (velAlongNormal > 0) {
+            let jImpulse = (1 + RESTITUTION) * velAlongNormal / (1 / e1.mass + 1 / e2.mass);
+            let impulseX = jImpulse * nx;
+            let impulseY = jImpulse * ny;
+
+            e1.vx -= impulseX / e1.mass;
+            e1.vy -= impulseY / e1.mass;
+            e2.vx += impulseX / e2.mass;
+            e2.vy += impulseY / e2.mass;
+          }
+
+          let percent = 0.8;
+          let slop = 0.01;
+          let penetration = minDist - dist;
+          if (penetration > slop) {
+            let correction = (penetration / (1 / e1.mass + 1 / e2.mass)) * percent;
+            e1.x -= nx * correction * (1 / e1.mass);
+            e1.y -= ny * correction * (1 / e1.mass);
+            e2.x += nx * correction * (1 / e2.mass);
+            e2.y += ny * correction * (1 / e2.mass);
+          }
+        }
+      }
+    }
+
+    setEntities([...currentEntities]);
+
+    if (allStopped) {
+      isMovingRef.current = false;
+      evaluateTurn();
+    } else {
+      animationFrameRef.current = requestAnimationFrame(updatePhysics);
+    }
+  };
+
+  const handleGoal = (scorer: 1 | 2) => {
+    const newScore = { ...score, [scorer]: score[scorer] + 1 };
+    setScore(newScore);
+    
+    setGoalBanner({ scorer, text: '¡GOL!' });
+
+    Animated.parallel([
+      Animated.spring(goalScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+      Animated.timing(goalOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    setTimeout(() => {
+      Animated.timing(goalOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setGoalBanner(null);
+        goalScale.setValue(0);
+        
+        if (newScore[1] >= 3) {
+          setWinner(1);
+          addWin();
+          addCoins(50); // Flat reward for winning in 1P mode
+        } else if (newScore[2] >= 3) {
+          setWinner(2);
+          if (mode === '2P') addWin();
+        } else {
+          setActivePlayer(scorer === 1 ? 2 : 1);
+          resetBoard();
+        }
+      });
+    }, 2000);
+  };
+
+  const evaluateTurn = () => {
+    let resetNeeded = false;
+    entitiesRef.current.forEach(e => {
+      if (e.type !== 'ball') {
+        const insets = currentField.wallInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+        const BOUNDARY_LEFT = insets.left;
+        const BOUNDARY_RIGHT = BOARD_WIDTH - insets.right;
+        const BOUNDARY_TOP = insets.top;
+        const BOUNDARY_BOTTOM = BOARD_HEIGHT - insets.bottom;
+
+        if (e.x < BOUNDARY_LEFT || e.x > BOUNDARY_RIGHT || e.y < BOUNDARY_TOP || e.y > BOUNDARY_BOTTOM) {
+           e.y = e.y < BOUNDARY_TOP ? BOUNDARY_TOP + e.radius + 5 : BOUNDARY_BOTTOM - e.radius - 5;
+           e.x = Math.max(BOUNDARY_LEFT + e.radius + 5, Math.min(e.x, BOUNDARY_RIGHT - e.radius - 5));
+           e.vx = 0; e.vy = 0;
+           resetNeeded = true;
+        }
+      }
+    });
+
+    if (resetNeeded) setEntities([...entitiesRef.current]);
+    setActivePlayer(prev => prev === 1 ? 2 : 1);
+  };
+
+  const shoot = (id: number, vx: number, vy: number) => {
+    const entity = entitiesRef.current.find(e => e.id === id);
+    if (entity) {
+      entity.vx = vx;
+      entity.vy = vy;
+      isMovingRef.current = true;
+      animationFrameRef.current = requestAnimationFrame(updatePhysics);
+    }
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        const state = gameStateRef.current;
+        if (isMovingRef.current || state.winner || (state.activePlayer === 2 && state.mode === '1P')) return false;
+        
+        const touchX = evt.nativeEvent.locationX;
+        const touchY = evt.nativeEvent.locationY;
+        
+        const targetType = state.activePlayer === 1 ? 'p1' : 'p2';
+        const touchedEntity = entitiesRef.current.find(e => {
+          if (e.type !== targetType) return false;
+          const dist = Math.sqrt(Math.pow(touchX - e.x, 2) + Math.pow(touchY - e.y, 2));
+          return dist < e.radius * 3;
+        });
+
+        if (touchedEntity) {
+          // Actualizamos también la ref manualmente para que esté disponible de inmediato en onPanResponderGrant
+          gameStateRef.current.activeEntityId = touchedEntity.id;
+          setActiveEntityId(touchedEntity.id);
+          return true;
+        }
+        return false;
+      },
+      onPanResponderGrant: (evt) => {
+        const state = gameStateRef.current;
+        const entity = entitiesRef.current.find(e => e.id === state.activeEntityId);
+        if (entity) {
+          const start = { x: entity.x, y: entity.y };
+          const current = { x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY };
+          gameStateRef.current.dragStart = start;
+          gameStateRef.current.dragCurrent = current;
+          gameStateRef.current.isAiming = true;
+          
+          setDragStart(start);
+          setDragCurrent(current);
+          setIsAiming(true);
+        }
+      },
+      onPanResponderMove: (evt) => {
+        const state = gameStateRef.current;
+        if (!state.isAiming) return;
+        const current = { x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY };
+        gameStateRef.current.dragCurrent = current;
+        setDragCurrent(current);
+      },
+      onPanResponderRelease: () => {
+        const state = gameStateRef.current;
+        if (!state.isAiming || state.activeEntityId === null) return;
+        
+        gameStateRef.current.isAiming = false;
+        setIsAiming(false);
+        
+        const dx = state.dragStart.x - state.dragCurrent.x;
+        const dy = state.dragStart.y - state.dragCurrent.y;
+        
+        let vx = dx * 0.1;
+        let vy = dy * 0.1;
+        
+        const speed = Math.sqrt(vx*vx + vy*vy);
+        const MAX_SPEED = 18;
+        if (speed > MAX_SPEED) {
+          vx = (vx / speed) * MAX_SPEED;
+          vy = (vy / speed) * MAX_SPEED;
+        }
+
+        if (speed > 1) {
+          shoot(state.activeEntityId, vx, vy);
+        }
+        
+        gameStateRef.current.activeEntityId = null;
+        setActiveEntityId(null);
+      }
+    })
+  ).current;
+
+  useEffect(() => {
+    if (mode === '1P' && activePlayer === 2 && !isMovingRef.current && !winner) {
+      const timer = setTimeout(() => {
+        makeAIMove();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [activePlayer, isMovingRef.current, winner]);
+
+  const makeAIMove = () => {
+    const aiChapas = entitiesRef.current.filter(e => e.type === 'p2');
+    const ball = entitiesRef.current.find(e => e.type === 'ball');
+    if (!ball || aiChapas.length === 0) return;
+
+    let closestChapa = aiChapas[0];
+    let minD = Infinity;
+    aiChapas.forEach(c => {
+      const d = Math.sqrt(Math.pow(c.x - ball.x, 2) + Math.pow(c.y - ball.y, 2));
+      if (d < minD) {
+        minD = d;
+        closestChapa = c;
+      }
+    });
+
+    let dx = ball.x - closestChapa.x;
+    let dy = ball.y - closestChapa.y;
+    dy -= 10;
+    
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Asegurar que la fuerza de la IA no supere la del jugador (18)
+    const power = 10 + Math.random() * 8; 
+    const vx = (dx / dist) * power;
+    const vy = (dy / dist) * power;
+
+    shoot(closestChapa.id, vx, vy);
+  };
+
+  const renderPitchStripes = () => {
+    if (currentField.image) {
+      const isRotated = !!currentField.imageRotation;
+      
+      return (
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+          <Image 
+            source={currentField.image} 
+            style={[
+              isRotated ? {
+                position: 'absolute',
+                width: BOARD_HEIGHT,
+                height: BOARD_WIDTH,
+                top: (BOARD_HEIGHT - BOARD_WIDTH) / 2,
+                left: (BOARD_WIDTH - BOARD_HEIGHT) / 2,
+                transform: [{ rotate: `${currentField.imageRotation}deg` }]
+              } : {
+                width: '100%', 
+                height: '100%' 
+              }
+            ]} 
+            resizeMode={currentField.imageResizeMode || "cover"} 
+          />
+        </View>
+      );
+    }
+    const stripes = [];
+    const stripeHeight = BOARD_HEIGHT / 10;
+    for (let i = 0; i < 10; i++) {
+      stripes.push(
+        <View 
+          key={i} 
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: i * stripeHeight,
+            left: 0,
+            width: BOARD_WIDTH,
+            height: stripeHeight,
+            backgroundColor: i % 2 === 0 ? currentField.color : currentField.stripeColor
+          }} 
+        />
+      );
+    }
+    return stripes;
+  };
+
+  const activeEntity = entities.find(e => e.id === activeEntityId);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.scoreboard}>
+        <Text style={[styles.scoreText, { color: team1.colorPrimary }]}>{team1.name}: {score[1]}</Text>
+        <Text style={[styles.turnText, { color: activePlayer === 1 ? team1.colorPrimary : team2.colorPrimary }]}>
+          {winner ? 'Finalizado' : `Turno: ${activePlayer === 1 ? 'J1' : (mode === '1P' ? 'IA' : 'J2')}`}
+        </Text>
+        <Text style={[styles.scoreText, { color: team2.colorPrimary }]}>
+          {mode === '1P' ? 'IA' : team2.name}: {score[2]}
+        </Text>
+      </View>
+
+      {winner ? (
+        <View style={styles.winnerBox}>
+          <Text style={styles.winnerText}>
+            {winner === 1 ? '¡HAS GANADO!' : (mode === '1P' ? '¡HAS PERDIDO!' : '¡GANA EL JUGADOR 2!')}
+          </Text>
+          {winner === 1 && mode === '1P' && (
+            <Text style={[styles.winnerText, { fontSize: 24, color: '#FFD700', marginTop: 10 }]}>
+              +50 🪙
+            </Text>
+          )}
+          <TouchableOpacity style={styles.button} onPress={handleBackToMenu}>
+            <Text style={styles.buttonText}>Volver al Inicio</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.boardWrapper}>
+          
+          {goalBanner && (
+            <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 100, justifyContent: 'center', alignItems: 'center' }]}>
+              <Animated.View style={{
+                 transform: [{ scale: goalScale }],
+                 opacity: goalOpacity,
+                 backgroundColor: goalBanner.scorer === 1 ? team1.colorPrimary : team2.colorPrimary,
+                 paddingHorizontal: 40,
+                 paddingVertical: 20,
+                 borderRadius: 20,
+                 borderWidth: 4,
+                 borderColor: '#FFF',
+                 shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 10
+              }}>
+                <Text style={{ fontSize: 60, fontWeight: '900', color: '#FFF', fontStyle: 'italic' }}>{goalBanner.text}</Text>
+              </Animated.View>
+            </View>
+          )}
+
+          <View style={[styles.board, { backgroundColor: currentField.color }]} {...panResponder.panHandlers}>
+            
+            {renderPitchStripes()}
+
+            {!currentField.image && (
+              <>
+                <View pointerEvents="none" style={styles.centerLine} />
+                <View pointerEvents="none" style={styles.centerCircle} />
+                <View pointerEvents="none" style={[styles.penaltyArea, styles.penaltyTop]} />
+                <View pointerEvents="none" style={[styles.penaltyArea, styles.penaltyBottom]} />
+              </>
+            )}
+
+            <View pointerEvents="none" style={[styles.goal, styles.goalTop, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH }]} />
+            <View pointerEvents="none" style={[styles.goal, styles.goalBottom, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH }]} />
+
+            {isAiming && activeEntity && (
+              <Svg style={StyleSheet.absoluteFill}>
+                <Line
+                  x1={dragStart.x}
+                  y1={dragStart.y}
+                  x2={dragStart.x - (dragCurrent.x - dragStart.x)}
+                  y2={dragStart.y - (dragCurrent.y - dragStart.y)}
+                  stroke={activePlayer === 1 ? team1.colorPrimary : team2.colorPrimary}
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+              </Svg>
+            )}
+
+            {entities.map(e => {
+              let bgColor = '#FFF';
+              let borderColor = '#333';
+              let teamData = null;
+              
+              if (e.type === 'ball') {
+                return (
+                  <View 
+                    key={`entity-${e.id}`} 
+                    pointerEvents="none"
+                    style={[
+                      styles.ball, 
+                      { 
+                        left: e.x - e.radius, top: e.y - e.radius,
+                        width: e.radius * 2, height: e.radius * 2, borderRadius: e.radius 
+                      }
+                    ]} 
+                  >
+                     <View style={styles.ballInner} />
+                  </View>
+                );
+              }
+              
+              let isActiveTurn = false;
+              teamData = e.type === 'p1' ? team1 : team2;
+              bgColor = teamData.colorSecondary;
+              borderColor = teamData.colorPrimary;
+              isActiveTurn = (activePlayer === 1 && e.type === 'p1') || (activePlayer === 2 && e.type === 'p2');
+              
+              const isTurnHighlight = isActiveTurn && !isMovingRef.current && !winner;
+
+              return (
+                <View 
+                  key={`entity-${e.id}`} 
+                  pointerEvents="none"
+                  style={[
+                    styles.chapa, 
+                    { 
+                      left: e.x - e.radius, 
+                      top: e.y - e.radius,
+                      width: e.radius * 2, 
+                      height: e.radius * 2,
+                      borderColor: teamData?.svg ? 'transparent' : borderColor,
+                      borderWidth: teamData?.svg ? 0 : 3,
+                      borderRadius: e.radius,
+                    }
+                  ]} 
+                >
+                  <ChapaModular 
+                    size={e.radius * 2} 
+                    FlagSvg={teamData?.svg} 
+                    fallbackColor={bgColor} 
+                    number={e.number} 
+                  />
+                  {isTurnHighlight && (
+                    <View style={{
+                      position: 'absolute',
+                      top: -5, left: -5, right: -5, bottom: -5,
+                      borderRadius: e.radius + 5,
+                      borderWidth: 3,
+                      borderColor: '#FFFFFF',
+                      borderStyle: 'solid',
+                      shadowColor: '#FFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 5
+                    }} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreboard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '95%',
+    backgroundColor: colors.surface,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  scoreText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  turnText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  boardWrapper: {
+    padding: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    width: '100%',
+    alignItems: 'center',
+  },
+  board: {
+    width: BOARD_WIDTH,
+    height: BOARD_HEIGHT,
+    backgroundColor: '#2E8B57',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  centerLine: {
+    position: 'absolute',
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    top: BOARD_HEIGHT / 2 - 1,
+  },
+  centerCircle: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    left: BOARD_WIDTH / 2 - 30,
+    top: BOARD_HEIGHT / 2 - 30,
+  },
+  penaltyArea: {
+    position: 'absolute',
+    width: 140,
+    height: 60,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    left: BOARD_WIDTH / 2 - 70,
+  },
+  penaltyTop: {
+    top: -2,
+  },
+  penaltyBottom: {
+    bottom: -2,
+  },
+  goal: {
+    position: 'absolute',
+    height: 20,
+    backgroundColor: '#E0E0E0',
+    borderWidth: 2,
+    borderColor: '#333',
+    borderStyle: 'dashed',
+  },
+  goalTop: {
+    top: 0,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+  },
+  goalBottom: {
+    bottom: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+  },
+  chapa: {
+    position: 'absolute',
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  chapaInner: {
+    width: '50%',
+    height: '50%',
+    borderRadius: 10,
+    opacity: 0.8,
+  },
+  chapaNumberOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: CHAPA_RADIUS,
+  },
+  chapaNumber: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  ball: {
+    position: 'absolute',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  ballInner: {
+    width: '40%',
+    height: '40%',
+    backgroundColor: '#333',
+    borderRadius: 5,
+  },
+  winnerBox: {
+    position: 'absolute',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 30,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  winnerText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  buttonText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});

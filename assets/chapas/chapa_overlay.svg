@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <defs>
+    <!-- Gradiente para el borde metálico -->
+    <linearGradient id="metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="20%" stop-color="#D0D0D0" />
+      <stop offset="50%" stop-color="#707070" />
+      <stop offset="80%" stop-color="#B0B0B0" />
+      <stop offset="100%" stop-color="#505050" />
+    </linearGradient>
+    
+    <!-- Gradiente para el brillo de cristal superior (semitransparente) -->
+    <linearGradient id="brillo" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+    
+    <!-- Sombra interior para dar volumen 3D a la chapa -->
+    <radialGradient id="sombra" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="75%" stop-color="#000000" stop-opacity="0" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.5" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sombra interior esférica (transparente en el centro, oscura en los bordes) -->
+  <circle cx="250" cy="250" r="235" fill="url(#sombra)" />
+
+  <!-- Borde metálico exterior -->
+  <circle cx="250" cy="250" r="235" fill="none" stroke="url(#metal)" stroke-width="30" />
+
+  <!-- Brillo de cristal superior curvo -->
+  <ellipse cx="250" cy="130" rx="180" ry="75" fill="url(#brillo)" />
+</svg>

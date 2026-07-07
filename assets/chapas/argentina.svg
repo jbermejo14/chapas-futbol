@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <!-- Franja azul celeste superior -->
+  <rect x="0" y="0" width="600" height="133" fill="#75AADB"/>
+  
+  <!-- Franja blanca central (misma anchura) -->
+  <rect x="0" y="133" width="600" height="134" fill="#FFFFFF"/>
+  
+  <!-- Franja azul celeste inferior -->
+  <rect x="0" y="267" width="600" height="133" fill="#75AADB"/>
+  
+  <!-- Sol de Mayo simple en el centro -->
+  <circle cx="300" cy="200" r="25" fill="#FCB316" />
+  
+  <!-- Rayos simple (16 triángulos cónicos) -->
+  <g transform="translate(300, 200)" fill="#FCB316">
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(0)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(22.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(45)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(67.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(90)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(112.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(135)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(157.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(180)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(202.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(225)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(247.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(270)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(292.5)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(315)"/>
+    <polygon points="0,-25 -8,-55 8,-55" transform="rotate(337.5)"/>
+  </g>
+</svg>

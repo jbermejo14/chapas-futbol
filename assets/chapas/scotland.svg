@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360">
+  <!-- Campo azul (Aproximación Pantone 300C) -->
+  <rect width="600" height="360" fill="#005EB8"/>
+  
+  <!-- Cruz de San Andrés blanca (Saltire) -->
+  <!-- Grosor de la aspa de 1/5 de la altura de la bandera (360 / 5 = 72) -->
+  <line x1="0" y1="0" x2="600" y2="360" stroke="#FFFFFF" stroke-width="72"/>
+  <line x1="0" y1="360" x2="600" y2="0" stroke="#FFFFFF" stroke-width="72"/>
+</svg>

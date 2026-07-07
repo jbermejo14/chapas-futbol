@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <rect width="900" height="66.67" y="0" fill="#FFFFFF"/>
+  <rect width="900" height="66.67" y="66.67" fill="#003B94"/>
+  <rect width="900" height="66.67" y="133.33" fill="#FFFFFF"/>
+  <rect width="900" height="66.67" y="200" fill="#003B94"/>
+  <rect width="900" height="66.67" y="266.67" fill="#FFFFFF"/>
+  <rect width="900" height="66.67" y="333.33" fill="#003B94"/>
+  <rect width="900" height="66.67" y="400" fill="#FFFFFF"/>
+  <rect width="900" height="66.67" y="466.67" fill="#003B94"/>
+  <rect width="900" height="66.67" y="533.33" fill="#FFFFFF"/>
+
+  <rect x="0" y="0" width="333.33" height="333.33" fill="#FFFFFF"/>
+
+  <g transform="translate(166.67, 166.67)">
+    <circle r="60" fill="#FFD700" />
+    
+    <g fill="#FFD700">
+      <rect x="-10" y="-120" width="20" height="60"/> <rect x="-10" y="60" width="20" height="60"/>  <rect x="-120" y="-10" width="60" height="20"/> <rect x="60" y="-10" width="60" height="20"/>  <g transform="rotate(45)">
+        <rect x="-10" y="-120" width="20" height="60"/>
+        <rect x="-10" y="60" width="20" height="60"/>
+        <rect x="-120" y="-10" width="60" height="20"/>
+        <rect x="60" y="-10" width="60" height="20"/>
+      </g>
+      <g transform="rotate(22.5)">
+        <rect x="-10" y="-120" width="20" height="60"/>
+        <rect x="-10" y="60" width="20" height="60"/>
+        <rect x="-120" y="-10" width="60" height="20"/>
+        <rect x="60" y="-10" width="60" height="20"/>
+      </g>
+      <g transform="rotate(67.5)">
+        <rect x="-10" y="-120" width="20" height="60"/>
+        <rect x="-10" y="60" width="20" height="60"/>
+        <rect x="-120" y="-10" width="60" height="20"/>
+        <rect x="60" y="-10" width="60" height="20"/>
+      </g>
+    </g>
+  </g>
+</svg>

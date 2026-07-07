@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <!-- Definición de una estrella blanca de 5 puntas con radio interior/exterior -->
+    <polygon id="star" points="0,-12 3.6,-4.8 11.4,-3.6 6,-2.4 7.2,5.4 0,1.2 -7.2,5.4 -6,-2.4 -11.4,-3.6 -3.6,-4.8" fill="#FFFFFF"/>
+    
+    <!-- Grupo de 6 estrellas para filas impares -->
+    <g id="row6">
+      <use href="#star" x="20" y="0"/>
+      <use href="#star" x="60" y="0"/>
+      <use href="#star" x="100" y="0"/>
+      <use href="#star" x="140" y="0"/>
+      <use href="#star" x="180" y="0"/>
+      <use href="#star" x="220" y="0"/>
+    </g>
+    
+    <!-- Grupo de 5 estrellas para filas pares -->
+    <g id="row5">
+      <use href="#star" x="40" y="0"/>
+      <use href="#star" x="80" y="0"/>
+      <use href="#star" x="120" y="0"/>
+      <use href="#star" x="160" y="0"/>
+      <use href="#star" x="200" y="0"/>
+    </g>
+  </defs>
+
+  <!-- Fondo blanco para las franjas (6 blancas en total) -->
+  <rect x="0" y="0" width="600" height="400" fill="#FFFFFF"/>
+  
+  <!-- 7 Franjas rojas (alternas) -->
+  <g fill="#BF0A30">
+    <!-- Franja 1 (arriba) -->
+    <rect x="0" y="0" width="600" height="30.77"/>
+    <!-- Franja 3 -->
+    <rect x="0" y="61.54" width="600" height="30.77"/>
+    <!-- Franja 5 -->
+    <rect x="0" y="123.08" width="600" height="30.77"/>
+    <!-- Franja 7 -->
+    <rect x="0" y="184.62" width="600" height="30.77"/>
+    <!-- Franja 9 -->
+    <rect x="0" y="246.15" width="600" height="30.77"/>
+    <!-- Franja 11 -->
+    <rect x="0" y="307.69" width="600" height="30.77"/>
+    <!-- Franja 13 (abajo) -->
+    <rect x="0" y="369.23" width="600" height="30.77"/>
+  </g>
+  
+  <!-- Cantón azul (esquina superior izquierda, 7 franjas de altura, aprox 2/5 de ancho) -->
+  <!-- Ancho = 240, Altura = 7 * 30.77 = 215.38 -->
+  <rect x="0" y="0" width="240" height="215.38" fill="#002868"/>
+  
+  <!-- 50 Estrellas blancas (9 filas de 6 y 5 estrellas alternas) -->
+  <!-- Centros Y de filas (9 filas en 215.38px): 215.38 / (9+1) = 21.54px -->
+  <g id="stars" transform="translate(0, 0)">
+    <!-- Filas de 6 estrellas (impares) -->
+    <use href="#row6" y="21.54"/>
+    <use href="#row6" y="64.62"/>
+    <use href="#row6" y="107.70"/>
+    <use href="#row6" y="150.78"/>
+    <use href="#row6" y="193.86"/>
+    
+    <!-- Filas de 5 estrellas (pares) -->
+    <use href="#row5" y="43.08"/>
+    <use href="#row5" y="86.16"/>
+    <use href="#row5" y="129.24"/>
+    <use href="#row5" y="172.32"/>
+  </g>
+</svg>
