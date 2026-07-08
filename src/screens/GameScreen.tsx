@@ -35,13 +35,19 @@ type Entity = {
   number?: number;
 };
 
-const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId): Entity[] => {
+const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId, currentField: any): Entity[] => {
   const entities: Entity[] = [];
   let idCounter = 0;
 
+  const insets = currentField.wallInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+  const pW = BOARD_WIDTH - insets.left - insets.right;
+  const pH = BOARD_HEIGHT - insets.top - insets.bottom;
+  const cx = insets.left + pW / 2;
+  const cy = insets.top + pH / 2;
+
   entities.push({
     id: idCounter++, type: 'ball',
-    x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2,
+    x: cx, y: cy,
     vx: 0, vy: 0, radius: BALL_RADIUS, mass: 1
   });
 
@@ -51,8 +57,8 @@ const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId): E
   p1Form.points.forEach(pt => {
     entities.push({
       id: idCounter++, type: 'p1',
-      x: BOARD_WIDTH * pt.xMultiplier,
-      y: (BOARD_HEIGHT / 2) + ((BOARD_HEIGHT / 2) * pt.yMultiplier),
+      x: insets.left + pW * pt.xMultiplier,
+      y: cy + (pH / 2) * pt.yMultiplier,
       vx: 0, vy: 0, radius: CHAPA_RADIUS, mass: 6,
       number: pt.number
     });
@@ -61,8 +67,8 @@ const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId): E
   p2Form.points.forEach(pt => {
     entities.push({
       id: idCounter++, type: 'p2',
-      x: BOARD_WIDTH * (1 - pt.xMultiplier),
-      y: (BOARD_HEIGHT / 2) - ((BOARD_HEIGHT / 2) * pt.yMultiplier),
+      x: insets.left + pW * (1 - pt.xMultiplier),
+      y: cy - (pH / 2) * pt.yMultiplier,
       vx: 0, vy: 0, radius: CHAPA_RADIUS, mass: 6,
       number: pt.number
     });
@@ -95,6 +101,17 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const entitiesRef = useRef<Entity[]>([]);
   const isMovingRef = useRef(false);
   const animationFrameRef = useRef<number>(undefined);
+  const ballInTargetRef = useRef(false);
+
+  const [matchStats, setMatchStats] = useState({
+    1: { shots: 0, ballTouches: 0, shotsOnTarget: 0, blocks: 0 },
+    2: { shots: 0, ballTouches: 0, shotsOnTarget: 0, blocks: 0 }
+  });
+
+  const matchStatsRef = useRef({
+    1: { shots: 0, ballTouches: 0, shotsOnTarget: 0, blocks: 0 },
+    2: { shots: 0, ballTouches: 0, shotsOnTarget: 0, blocks: 0 }
+  });
 
   // Ref to hold latest state for PanResponder closures
   const gameStateRef = useRef({
@@ -114,9 +131,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const resetBoard = () => {
-    entitiesRef.current = createInitialFormation(p1Formation, p2Formation);
+    entitiesRef.current = createInitialFormation(p1Formation, p2Formation, currentField);
     setEntities([...entitiesRef.current]);
     isMovingRef.current = false;
+    ballInTargetRef.current = false;
   };
 
   const handleBackToMenu = () => {
@@ -153,6 +171,19 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         else if (e.x + e.radius > BOUNDARY_RIGHT) { e.x = BOUNDARY_RIGHT - e.radius; e.vx *= -RESTITUTION; }
 
         const inGoalXBounds = e.x > goalLeft && e.x < goalRight;
+
+        if (e.type === 'ball') {
+           const inGoalTop = e.y - e.radius < BOUNDARY_TOP && inGoalXBounds;
+           const inGoalBottom = e.y + e.radius > BOUNDARY_BOTTOM && inGoalXBounds;
+           if (inGoalTop || inGoalBottom) {
+             if (!ballInTargetRef.current) {
+               matchStatsRef.current[inGoalTop ? 1 : 2].shotsOnTarget += 1;
+               ballInTargetRef.current = true;
+             }
+           } else {
+             ballInTargetRef.current = false;
+           }
+        }
 
         if (e.y - e.radius < BOUNDARY_TOP) {
           if (inGoalXBounds) {
@@ -197,16 +228,32 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           let vyRel = e1.vy - e2.vy;
           let velAlongNormal = vxRel * nx + vyRel * ny;
 
-          if (velAlongNormal > 0) {
-            let jImpulse = (1 + RESTITUTION) * velAlongNormal / (1 / e1.mass + 1 / e2.mass);
-            let impulseX = jImpulse * nx;
-            let impulseY = jImpulse * ny;
+            if (velAlongNormal > 0) {
+              if ((e1.type === 'ball' && e2.type !== 'ball') || (e2.type === 'ball' && e1.type !== 'ball')) {
+                const chapa = e1.type === 'ball' ? e2 : e1;
+                const chapaPlayer = chapa.type === 'p1' ? 1 : 2;
+                
+                // Solo contamos el toque una vez por impacto inicial (cuando es más fuerte)
+                if (velAlongNormal > MIN_VELOCITY) {
+                  matchStatsRef.current[chapaPlayer].ballTouches += 1;
+                }
 
-            e1.vx -= impulseX / e1.mass;
-            e1.vy -= impulseY / e1.mass;
-            e2.vx += impulseX / e2.mass;
-            e2.vy += impulseY / e2.mass;
-          }
+                if (chapa.type === 'p1' && chapa.y > BOARD_HEIGHT * 0.75 && activePlayer === 2) {
+                   if (velAlongNormal > MIN_VELOCITY) matchStatsRef.current[1].blocks += 1;
+                } else if (chapa.type === 'p2' && chapa.y < BOARD_HEIGHT * 0.25 && activePlayer === 1) {
+                   if (velAlongNormal > MIN_VELOCITY) matchStatsRef.current[2].blocks += 1;
+                }
+              }
+
+              let jImpulse = (1 + RESTITUTION) * velAlongNormal / (1 / e1.mass + 1 / e2.mass);
+              let impulseX = jImpulse * nx;
+              let impulseY = jImpulse * ny;
+
+              e1.vx -= impulseX / e1.mass;
+              e1.vy -= impulseY / e1.mass;
+              e2.vx += impulseX / e2.mass;
+              e2.vy += impulseY / e2.mass;
+            }
 
           let percent = 0.8;
           let slop = 0.01;
@@ -260,13 +307,20 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         setGoalBanner(null);
         goalScale.setValue(0);
         
-        if (newScore[1] >= 2) {
-          setWinner(1);
-          addWin();
-          addCoins(100); // Doble de 50 si gana
-        } else if (newScore[2] >= 2) {
-          setWinner(2);
-          if (mode === '2P') addWin();
+        if (newScore[1] >= 2 || newScore[2] >= 2) {
+          setMatchStats({
+            1: { ...matchStatsRef.current[1] },
+            2: { ...matchStatsRef.current[2] }
+          });
+          
+          if (newScore[1] >= 2) {
+            setWinner(1);
+            addWin();
+            addCoins(100); // Doble de 50 si gana
+          } else if (newScore[2] >= 2) {
+            setWinner(2);
+            if (mode === '2P') addWin();
+          }
         } else {
           setActivePlayer(scorer === 1 ? 2 : 1);
           resetBoard();
@@ -301,6 +355,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const shoot = (id: number, vx: number, vy: number) => {
     const entity = entitiesRef.current.find(e => e.id === id);
     if (entity) {
+      matchStatsRef.current[entity.type === 'p1' ? 1 : 2].shots += 1;
       entity.vx = vx;
       entity.vy = vy;
       isMovingRef.current = true;
@@ -400,27 +455,66 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     const ball = entitiesRef.current.find(e => e.type === 'ball');
     if (!ball || aiChapas.length === 0) return;
 
-    let closestChapa = aiChapas[0];
-    let minD = Infinity;
+    const targetGoalX = BOARD_WIDTH / 2;
+    const insets = currentField.wallInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+    const targetGoalY = BOARD_HEIGHT - insets.bottom; // P1's goal is at the bottom
+
+    // Vector from ball to goal
+    const bgX = targetGoalX - ball.x;
+    const bgY = targetGoalY - ball.y;
+    const bgDist = Math.sqrt(bgX * bgX + bgY * bgY);
+    
+    // Normalized ball-to-goal vector
+    const bgDirX = bgX / bgDist;
+    const bgDirY = bgY / bgDist;
+
+    // Ideal point for the chapa to hit the ball (exactly opposite to the goal direction)
+    const impactDist = ball.radius + aiChapas[0].radius; 
+    const idealHitX = ball.x - bgDirX * impactDist;
+    const idealHitY = ball.y - bgDirY * impactDist;
+
+    // Evaluate the best chapa
+    let bestChapa = aiChapas[0];
+    let bestScore = -Infinity;
+
     aiChapas.forEach(c => {
-      const d = Math.sqrt(Math.pow(c.x - ball.x, 2) + Math.pow(c.y - ball.y, 2));
-      if (d < minD) {
-        minD = d;
-        closestChapa = c;
+      const distToBall = Math.sqrt(Math.pow(c.x - ball.x, 2) + Math.pow(c.y - ball.y, 2));
+      let score = -distToBall; // Prefer closer chapas
+
+      // Calculate alignment: dot product between (chapa -> ball) and (ball -> goal)
+      const cbX = ball.x - c.x;
+      const cbY = ball.y - c.y;
+      const cbDist = Math.sqrt(cbX * cbX + cbY * cbY);
+      
+      if (cbDist > 0) {
+        const dotProduct = (cbX / cbDist) * bgDirX + (cbY / cbDist) * bgDirY;
+        // High reward for being "behind" the ball relative to the goal (dotProduct close to 1)
+        score += dotProduct * 300; 
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestChapa = c;
       }
     });
 
-    let dx = ball.x - closestChapa.x;
-    let dy = ball.y - closestChapa.y;
-    dy -= 10;
+    // Add a tiny bit of random error so the AI is not unbeatable
+    const errorMarginX = (Math.random() - 0.5) * 8; 
+    const errorMarginY = (Math.random() - 0.5) * 8;
     
+    const dx = (idealHitX + errorMarginX) - bestChapa.x;
+    const dy = (idealHitY + errorMarginY) - bestChapa.y;
+
     const dist = Math.sqrt(dx * dx + dy * dy);
-    // IA power up to match player speed (around 25-28)
-    const power = 15 + Math.random() * 12; 
+    
+    // Dynamic power: hit harder if the ball is far from the goal, or the chapa is far from the ball
+    const neededPower = 15 + (bgDist / BOARD_HEIGHT) * 10 + (dist / BOARD_HEIGHT) * 10;
+    const power = Math.max(15, Math.min(28, neededPower + (Math.random() * 4 - 2)));
+
     const vx = (dx / dist) * power;
     const vy = (dy / dist) * power;
 
-    shoot(closestChapa.id, vx, vy);
+    shoot(bestChapa.id, vx, vy);
   };
 
   const renderPitchStripes = () => {
@@ -491,9 +585,35 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           </Text>
           {winner === 1 && mode === '1P' && (
             <Text style={[styles.winnerText, { fontSize: 24, color: '#FFD700', marginTop: 10 }]}>
-              +50 🪙
+              +100 🪙
             </Text>
           )}
+
+          <View style={styles.statsContainer}>
+             <Text style={styles.statsTitle}>Estadísticas del Partido</Text>
+             
+             <View style={styles.statsRow}>
+                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].shots}</Text>
+                <Text style={styles.statLabel}>Tiros</Text>
+                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].shots}</Text>
+             </View>
+             <View style={styles.statsRow}>
+                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].ballTouches}</Text>
+                <Text style={styles.statLabel}>Toques de Balón</Text>
+                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].ballTouches}</Text>
+             </View>
+             <View style={styles.statsRow}>
+                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].shotsOnTarget}</Text>
+                <Text style={styles.statLabel}>Tiros a Puerta</Text>
+                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].shotsOnTarget}</Text>
+             </View>
+             <View style={styles.statsRow}>
+                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].blocks}</Text>
+                <Text style={styles.statLabel}>Paradas</Text>
+                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].blocks}</Text>
+             </View>
+          </View>
+
           <TouchableOpacity style={styles.button} onPress={handleBackToMenu}>
             <Text style={styles.buttonText}>Volver al Inicio</Text>
           </TouchableOpacity>
@@ -529,11 +649,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View pointerEvents="none" style={styles.centerCircle} />
                 <View pointerEvents="none" style={[styles.penaltyArea, styles.penaltyTop]} />
                 <View pointerEvents="none" style={[styles.penaltyArea, styles.penaltyBottom]} />
+                
+                <View pointerEvents="none" style={[styles.goal, styles.goalTop, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH, top: currentField.wallInsets?.top ? currentField.wallInsets.top - 20 : 0 }]} />
+                <View pointerEvents="none" style={[styles.goal, styles.goalBottom, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH, bottom: currentField.wallInsets?.bottom ? currentField.wallInsets.bottom - 20 : 0 }]} />
               </>
             )}
-
-            <View pointerEvents="none" style={[styles.goal, styles.goalTop, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH }]} />
-            <View pointerEvents="none" style={[styles.goal, styles.goalBottom, { left: (BOARD_WIDTH - GOAL_WIDTH) / 2, width: GOAL_WIDTH }]} />
 
             {isAiming && activeEntity && (
               <Svg style={StyleSheet.absoluteFill}>
@@ -791,5 +911,46 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  statsContainer: {
+    width: '100%',
+    minWidth: 280,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 15,
+    padding: 15,
+    marginVertical: 20,
+  },
+  statsTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    textTransform: 'uppercase',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+    paddingBottom: 5,
+  },
+  statLabel: {
+    color: '#DDD',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 2,
+    textAlign: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    flex: 1,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
 });
