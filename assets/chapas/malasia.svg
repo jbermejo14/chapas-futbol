@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 420">
+  <!-- Fondo blanco (actúa como las 7 franjas blancas) -->
+  <rect width="840" height="420" fill="#FFFFFF"/>
+  
+  <!-- 7 Franjas rojas (alternadas, empezando por la superior) -->
+  <path d="M0,0   H840 V30  H0 Z 
+           M0,60  H840 V90  H0 Z
+           M0,120 H840 V150 H0 Z
+           M0,180 H840 V210 H0 Z
+           M0,240 H840 V270 H0 Z
+           M0,300 H840 V330 H0 Z
+           M0,360 H840 V390 H0 Z" fill="#CC0000"/>
+           
+  <!-- Cantón azul oscuro (ocupa la mitad del ancho y las primeras 8 franjas de alto) -->
+  <rect x="0" y="0" width="420" height="240" fill="#000066"/>
+  
+  <!-- Luna creciente (creada superponiendo un círculo azul sobre uno amarillo) -->
+  <circle cx="170" cy="120" r="75" fill="#FFCC00"/>
+  <circle cx="195" cy="120" r="68" fill="#000066"/>
+  
+  <!-- Estrella de 14 puntas (Bintang Persekutuan) -->
+  <g transform="translate(250, 120)">
+    <!-- Círculo central para conectar la base de las puntas -->
+    <circle r="30" fill="#FFCC00"/>
+    
+    <!-- 14 triángulos individuales rotados matemáticamente (360 / 14 = 25.714) -->
+    <g fill="#FFCC00">
+      <polygon points="0,-60 10,-25 -10,-25"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(25.714)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(51.429)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(77.143)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(102.857)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(128.571)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(154.286)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(180)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(205.714)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(231.429)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(257.143)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(282.857)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(308.571)"/>
+      <polygon points="0,-60 10,-25 -10,-25" transform="rotate(334.286)"/>
+    </g>
+  </g>
+</svg>

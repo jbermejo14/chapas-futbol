@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <!-- Definición de las barras para reutilizarlas matemáticamente -->
+  <defs>
+    <!-- Barra continua (Solid) -->
+    <g id="solid">
+      <rect x="-12.5" y="-75" width="25" height="150" fill="#000000"/>
+    </g>
+    <!-- Barra partida (Broken) -->
+    <g id="broken">
+      <rect x="-12.5" y="-75" width="25" height="68.75" fill="#000000"/>
+      <rect x="-12.5" y="6.25" width="25" height="68.75" fill="#000000"/>
+    </g>
+  </defs>
+
+  <!-- Fondo blanco -->
+  <rect width="900" height="600" fill="#FFFFFF"/>
+
+  <!-- Todo el emblema está agrupado en el centro geométrico (450, 300) -->
+  <g transform="translate(450, 300)">
+    
+    <!-- Taegeuk (Círculo Central) -->
+    <!-- Rotado 33.69° para alinear su eje con la diagonal (top-left a bottom-right) -->
+    <g transform="rotate(33.69)">
+      <!-- Mitad inferior (Azul) - Se dibuja un círculo completo y la parte roja lo recorta -->
+      <circle cx="0" cy="0" r="150" fill="#0047A0"/>
+      <!-- Mitad superior (Roja) - Calculada con la curva S exacta -->
+      <path d="M -150 0 A 150 150 0 0 1 150 0 A 75 75 0 0 0 0 0 A 75 75 0 0 1 -150 0" fill="#CD2E3A"/>
+    </g>
+
+    <!-- Trigramas (Gwae) -->
+    
+    <!-- Superior Izquierdo (Geon: Cielo) - 3 barras continuas -->
+    <g transform="rotate(-146.31) translate(275, 0)">
+      <use href="#solid" x="-37.5"/>
+      <use href="#solid" x="0"/>
+      <use href="#solid" x="37.5"/>
+    </g>
+
+    <!-- Inferior Izquierdo (Ri: Fuego) - Continua, Partida, Continua -->
+    <g transform="rotate(146.31) translate(275, 0)">
+      <use href="#solid" x="-37.5"/>
+      <use href="#broken" x="0"/>
+      <use href="#solid" x="37.5"/>
+    </g>
+
+    <!-- Superior Derecho (Gam: Agua) - Partida, Continua, Partida -->
+    <g transform="rotate(-33.69) translate(275, 0)">
+      <use href="#broken" x="-37.5"/>
+      <use href="#solid" x="0"/>
+      <use href="#broken" x="37.5"/>
+    </g>
+
+    <!-- Inferior Derecho (Gon: Tierra) - 3 barras partidas -->
+    <g transform="rotate(33.69) translate(275, 0)">
+      <use href="#broken" x="-37.5"/>
+      <use href="#broken" x="0"/>
+      <use href="#broken" x="37.5"/>
+    </g>
+  </g>
+
+  <!-- Borde gris sutil para delimitar el fondo blanco en pantalla -->
+  <rect x="0" y="0" width="900" height="600" fill="none" stroke="#CCCCCC" stroke-width="2"/>
+</svg>

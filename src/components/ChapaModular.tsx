@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Image, Text } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 
 import OverlaySvg from '../../assets/chapas/chapa_overlay.svg';
 
@@ -12,22 +12,42 @@ interface ChapaModularProps {
 
 export const ChapaModular: React.FC<ChapaModularProps> = ({ size, FlagSvg, fallbackColor = '#CCC', number }) => {
   const radius = size / 2;
+  const innerSize = size * 0.85; // Borde más grueso estilo plástico
+  const innerRadius = innerSize / 2;
 
   return (
-    <View pointerEvents="none" style={[styles.container, { width: size, height: size }]}>
-      {/* CAPA 1 y 2: Máscara y Bandera Base */}
-      <View style={[styles.mask, { borderRadius: radius, backgroundColor: fallbackColor }]}>
+    <View pointerEvents="none" style={[styles.container, { width: size, height: size, borderRadius: radius }]}>
+      
+      {/* Base plástico oscuro/metálico (borde exterior) */}
+      <View style={[styles.plasticBase, { borderRadius: radius }]} />
+
+      {/* Máscara y Bandera Base (Centro vibrante) */}
+      <View style={[styles.mask, { 
+        width: innerSize, 
+        height: innerSize, 
+        borderRadius: innerRadius, 
+        backgroundColor: fallbackColor 
+      }]}>
         {FlagSvg && (
           <FlagSvg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
         )}
       </View>
 
-      {/* CAPA 3: Overlay Metálico y Brillo 3D */}
+      {/* Reflejo Blanco sutil superior derecho (Volumen 3D cómic) */}
+      <View style={[styles.comicReflection, { 
+        width: size * 0.4, 
+        height: size * 0.2, 
+        top: size * 0.1, 
+        right: size * 0.1,
+        borderRadius: size * 0.1,
+      }]} />
+
+      {/* CAPA 3: Overlay antiguo (mantenido por si añade textura) */}
       <View style={styles.overlay}>
         <OverlaySvg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
       </View>
 
-      {/* Dorsal (Opcional, siempre por encima de todo) */}
+      {/* Dorsal */}
       {number !== undefined && (
         <View style={styles.numberOverlay}>
           <Text style={[styles.numberText, { fontSize: size * 0.4 }]}>{number}</Text>
@@ -41,30 +61,48 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 0, // Sombra dura estilo cómic
+  },
+  plasticBase: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#333',
+    borderWidth: 2,
+    borderColor: '#000',
   },
   mask: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    position: 'absolute',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  comicReflection: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    transform: [{ rotate: '-15deg' }],
+    zIndex: 15,
   },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     width: '100%',
     height: '100%',
     zIndex: 10,
+    opacity: 0.5, // Reducimos opacidad para que el estilo cómic destaque más
   },
   numberOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)', // Oscurecemos un poco para que el número resalte
-    borderRadius: 1000, // Circular
   },
   numberText: {
     color: '#FFF',
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: '900',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0, // Sombra dura
   }
 });

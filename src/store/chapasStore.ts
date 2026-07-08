@@ -19,6 +19,7 @@ interface ChapasState {
   preferredTeam: TeamId;
   preferredFormation: FormationId;
   user: UserProfile | null;
+  friends: string[];
   addWin: () => void;
   addCoins: (amount: number) => void;
   deductCoins: (amount: number) => void;
@@ -26,6 +27,9 @@ interface ChapasState {
   unlockArena: (arenaId: ArenaId) => void;
   setPreferredTeam: (teamId: TeamId) => void;
   setPreferredFormation: (formationId: FormationId) => void;
+  setUsername: (username: string) => void;
+  addFriend: (userId: string) => void;
+  removeFriend: (userId: string) => void;
   resetProgress: () => void;
   initializeAuth: () => void;
 }
@@ -40,6 +44,20 @@ export const useChapasStore = create<ChapasState>()(
       preferredTeam: 'spain',
       preferredFormation: '1-2-1-1',
       user: null,
+      friends: [],
+
+      addFriend: (userId) => set((state) => {
+        if (state.friends.includes(userId)) return state;
+        const newFriends = [...state.friends, userId];
+        if (state.user) updateDoc(doc(db, 'users', state.user.id), { friends: newFriends }).catch(console.error);
+        return { friends: newFriends };
+      }),
+
+      removeFriend: (userId) => set((state) => {
+        const newFriends = state.friends.filter(id => id !== userId);
+        if (state.user) updateDoc(doc(db, 'users', state.user.id), { friends: newFriends }).catch(console.error);
+        return { friends: newFriends };
+      }),
 
       addWin: () => set((state) => {
         const newWins = state.wins + 1;
@@ -83,6 +101,14 @@ export const useChapasStore = create<ChapasState>()(
         return { preferredFormation: formationId };
       }),
 
+      setUsername: (username) => set((state) => {
+        if (state.user) {
+          updateDoc(doc(db, 'users', state.user.id), { username }).catch(console.error);
+          return { user: { ...state.user, username } };
+        }
+        return state;
+      }),
+
       resetProgress: () => set((state) => {
         const defaults = { unlockedTeams: ['spain', 'england'] as TeamId[], unlockedArenas: ['usa'] as ArenaId[], wins: 0, coins: 500, preferredTeam: 'spain' as TeamId, preferredFormation: '1-2-1-1' as FormationId };
         if (state.user) updateDoc(doc(db, 'users', state.user.id), defaults).catch(console.error);
@@ -92,43 +118,59 @@ export const useChapasStore = create<ChapasState>()(
       initializeAuth: () => {
         onAuthStateChanged(auth, async (firebaseUser) => {
           if (firebaseUser) {
-            const userRef = doc(db, 'users', firebaseUser.uid);
-            const userSnap = await getDoc(userRef);
-            
-            if (userSnap.exists()) {
-              const data = userSnap.data();
-              set({ 
-                user: { id: firebaseUser.uid, username: data.username, tag: data.tag },
-                coins: data.coins ?? get().coins,
-                wins: data.wins ?? get().wins,
-                unlockedTeams: data.unlockedTeams ?? get().unlockedTeams,
-                unlockedArenas: data.unlockedArenas ?? get().unlockedArenas,
-                preferredTeam: data.preferredTeam ?? get().preferredTeam,
-                preferredFormation: data.preferredFormation ?? get().preferredFormation
-              });
-            } else {
-              // Create new user profile in Firestore
-              const randomTag = Math.floor(1000 + Math.random() * 9000).toString();
-              const username = `Guest#${randomTag}`;
+            try {
+              const userRef = doc(db, 'users', firebaseUser.uid);
+              const userSnap = await getDoc(userRef);
               
-              const newUserProfile = {
-                id: firebaseUser.uid,
-                username,
-                tag: `#${randomTag}`,
-                coins: get().coins,
-                wins: get().wins,
-                unlockedTeams: get().unlockedTeams,
-                unlockedArenas: get().unlockedArenas,
-                preferredTeam: get().preferredTeam,
-                preferredFormation: get().preferredFormation
-              };
-              
-              await setDoc(userRef, newUserProfile);
-              set({ user: { id: firebaseUser.uid, username, tag: `#${randomTag}` } });
+              if (userSnap.exists()) {
+                const data = userSnap.data();
+                set({ 
+                  user: { id: firebaseUser.uid, username: data.username || 'Player', tag: data.tag || '#0000' },
+                  coins: data.coins ?? get().coins,
+                  wins: data.wins ?? get().wins,
+                  unlockedTeams: data.unlockedTeams ?? get().unlockedTeams,
+                  unlockedArenas: data.unlockedArenas ?? get().unlockedArenas,
+                  preferredTeam: data.preferredTeam ?? get().preferredTeam,
+                  preferredFormation: data.preferredFormation ?? get().preferredFormation,
+                  friends: data.friends ?? get().friends
+
+                });
+              } else {
+                // Create new user profile in Firestore
+                const randomTag = Math.floor(1000 + Math.random() * 9000).toString();
+                const username = `Guest#${randomTag}`;
+                
+                const newUserProfile = {
+                  id: firebaseUser.uid,
+                  username,
+                  tag: `#${randomTag}`,
+                  coins: get().coins,
+                  wins: get().wins,
+                  unlockedTeams: get().unlockedTeams,
+                  unlockedArenas: get().unlockedArenas,
+                  preferredTeam: get().preferredTeam,
+                  preferredFormation: get().preferredFormation,
+                  friends: get().friends
+                };
+                
+                await setDoc(userRef, newUserProfile);
+                set({ user: { id: firebaseUser.uid, username, tag: `#${randomTag}` } });
+              }
+            } catch (error) {
+              console.error("Error fetching/setting user profile:", error);
+              // Fallback para asegurar que 'user' nunca es null si hay login
+              set({ user: { id: firebaseUser.uid, username: 'Guest', tag: '#0000' } });
             }
           } else {
             // Not logged in, sign in anonymously
-            signInAnonymously(auth).catch(console.error);
+            try {
+              await signInAnonymously(auth);
+            } catch (error) {
+              console.error("Error en signInAnonymously:", error);
+              // Fallback local si falla Firebase totalmente
+              const localId = 'local_' + Math.random().toString(36).substring(2, 9);
+              set({ user: { id: localId, username: 'LocalGuest', tag: '#9999' } });
+            }
           }
         });
       }

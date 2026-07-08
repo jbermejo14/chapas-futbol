@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <!-- Franja roja superior (ocupa la mitad del alto) -->
+  <rect width="600" height="200" fill="#FF0000"/>
+  
+  <!-- Franja blanca inferior (ocupa la otra mitad del alto) -->
+  <rect y="200" width="600" height="200" fill="#FFFFFF"/>
+</svg>

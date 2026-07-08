@@ -1,50 +1,102 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme/colors';
 import { useChapasStore } from '../store/chapasStore';
-import { TEAMS, FORMATIONS, TeamId, FormationId } from '../data/chapasData';
-import { ChapaModular } from '../components/ChapaModular';
+import { ComicPanel } from '../components/ComicPanel';
+import { HypercasualButton } from '../components/HypercasualButton';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, wins, coins } = useChapasStore();
+  const { user, wins, coins, setUsername } = useChapasStore();
+  
+  const [localName, setLocalName] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setLocalName(user.username);
+    }
+  }, [user]);
 
   const handleSave = () => {
+    if (user && localName !== user.username) {
+      setUsername(localName);
+    }
     navigation.goBack();
+  };
+
+  const renderFakeSlider = (label: string, percentage: string) => {
+    return (
+      <View style={styles.sliderContainer}>
+        <Text style={styles.sliderLabel}>{label}</Text>
+        <View style={styles.sliderTrack}>
+          <View style={[styles.sliderFill, { width: percentage }]} />
+          <View style={[styles.sliderThumb, { left: percentage }]} />
+        </View>
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleSave} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Atrás</Text>
-          </TouchableOpacity>
+          <HypercasualButton 
+            title="Atrás" 
+            onPress={handleSave} 
+            color="secondary" 
+            style={styles.backButton}
+            textStyle={{fontSize: 16}}
+          />
           <Text style={styles.headerTitle}>Mi Perfil</Text>
-          <View style={{ width: 60 }} />
+          <View style={{ width: 80 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {user ? (
-            <View style={styles.userInfoCard}>
-              <Text style={styles.usernameText}>{user.username}</Text>
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{wins}</Text>
-                  <Text style={styles.statLabel}>Victorias</Text>
-                </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{coins} 🪙</Text>
-                  <Text style={styles.statLabel}>Monedas</Text>
-                </View>
+          
+          <ComicPanel style={styles.mainPanel}>
+            {/* FOTO DE PERFIL (Cuadrado) */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profilePicturePlaceholder}>
+                <Text style={styles.profilePictureIcon}>👤</Text>
+              </View>
+              <Text style={styles.playerIdText}>ID: {user ? user.id.slice(0, 8).toUpperCase() : 'CARGANDO...'}</Text>
+            </View>
+
+            {/* INPUT DEL NOMBRE */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Jugador</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={localName}
+                onChangeText={setLocalName}
+                placeholder="Introduce tu nombre..."
+                placeholderTextColor="#888"
+                maxLength={15}
+              />
+            </View>
+
+            {/* STATS */}
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{wins}</Text>
+                <Text style={styles.statLabel}>Victorias</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{coins} 🪙</Text>
+                <Text style={styles.statLabel}>Monedas</Text>
               </View>
             </View>
-          ) : (
-            <Text style={styles.description}>Cargando perfil...</Text>
-          )}
+
+            {/* SLIDERS (FALSOS) */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Ajustes</Text>
+              {renderFakeSlider('Sonido', '70%')}
+              {renderFakeSlider('Música', '40%')}
+            </View>
+          </ComicPanel>
 
         </ScrollView>
       </View>
@@ -53,139 +105,132 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: colors.background,
+  },
+  backButton: { width: 100 },
+  headerTitle: { color: '#FFF', fontSize: 28, fontWeight: '900', textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0 },
+  scrollContent: { padding: 20, paddingBottom: 60 },
+  
+  mainPanel: {
     backgroundColor: colors.surface,
   },
-  backButton: {
-    padding: 10,
+
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
-  backButtonText: {
-    color: colors.primary,
+  profilePicturePlaceholder: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  profilePictureIcon: {
+    fontSize: 60,
+  },
+  playerIdText: {
+    color: '#000',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    letterSpacing: 2,
   },
-  headerTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 60,
-  },
-  description: {
-    color: '#CCC',
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  userInfoCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 25,
-    alignItems: 'center',
-  },
-  usernameText: {
-    color: '#FFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-around',
-  },
-  statBox: {
-    alignItems: 'center',
-  },
-  statValue: {
-    color: '#FFD700',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    color: '#CCC',
-    fontSize: 12,
-    marginTop: 5,
-    textTransform: 'uppercase',
-  },
+  
   section: {
     marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 15,
-  },
-  horizontalScroll: {
-    flexGrow: 0,
-  },
-  card: {
-    width: 100,
-    height: 120,
-    borderRadius: 15,
-    padding: 10,
-    marginRight: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-  },
-  cardSelected: {
-    borderWidth: 3,
-    borderColor: '#FFD700',
-    transform: [{ scale: 1.05 }],
-  },
-  cardLocked: {
-    opacity: 0.7,
-  },
-  lockedText: {
-    fontSize: 16,
-    marginTop: 5,
-  },
-  cardText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 5,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  teamColorPreview: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    fontWeight: '900',
+    color: '#000',
     marginBottom: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
   },
-  formationGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 15,
-  },
-  formationCard: {
-    width: '45%',
-    backgroundColor: colors.surface,
+  
+  nameInput: {
+    backgroundColor: '#FFF',
+    color: '#000',
+    fontSize: 24,
+    fontWeight: '900',
     padding: 15,
+    borderRadius: 15,
+    borderWidth: 4,
+    borderColor: '#000',
+  },
+  
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 30,
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: '#000',
+  },
+  statBox: { alignItems: 'center' },
+  statValue: { color: colors.primary, fontSize: 32, fontWeight: '900', textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0 },
+  statLabel: { color: '#000', fontSize: 14, marginTop: 5, textTransform: 'uppercase', fontWeight: '900' },
+
+  sliderContainer: {
+    marginBottom: 20,
+  },
+  sliderLabel: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  sliderTrack: {
+    height: 20,
+    backgroundColor: '#FFF',
     borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#444',
+    borderWidth: 4,
+    borderColor: '#000',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  sliderFill: {
+    position: 'absolute',
+    left: 0,
+    top: -4,
+    bottom: -4,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    borderWidth: 4,
+    borderColor: '#000',
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    borderWidth: 4,
+    borderColor: '#000',
+    marginLeft: -15, // center it
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
 });
+

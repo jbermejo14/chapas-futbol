@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <!-- Fondo verde oscuro (Ocupa todo el lienzo) -->
+  <rect width="900" height="600" fill="#01411C"/>
+
+  <!-- Franja blanca al lado del asta (Ocupa el 25% del ancho total = 225px) -->
+  <rect width="225" height="600" fill="#FFFFFF"/>
+
+  <!-- Símbolos: Creciente y Estrella -->
+  <!-- 
+       Trasladamos el origen al centro de la sección verde: 
+       X = 225 + (675 / 2) = 562.5
+       Y = 600 / 2 = 300
+       Y rotamos todo -45 grados para apuntar a la esquina superior derecha
+  -->
+  <g transform="translate(562.5, 300) rotate(-45)">
+    
+    <!-- Círculo blanco exterior (Forma principal de la luna) -->
+    <circle cx="0" cy="0" r="180" fill="#FFFFFF"/>
+    
+    <!-- Círculo verde interior (Desplazado para "recortar" el círculo blanco y formar el creciente) -->
+    <circle cx="60" cy="0" r="165" fill="#01411C"/>
+    
+    <!-- Estrella de 5 puntas -->
+    <!-- Desplazada 120 unidades en el eje de rotación, haciendo que encaje justo entre los cuernos del creciente -->
+    <g transform="translate(120, 0)">
+      <!-- Polígono calculado matemáticamente para apuntar hacia afuera sobre el mismo eje -->
+      <polygon points="60,0 18.6,13.5 18.5,57.1 -7.1,21.9 -48.5,35.3 -23,0 -48.5,-35.3 -7.1,-21.9 18.5,-57.1 18.6,-13.5" fill="#FFFFFF"/>
+    </g>
+    
+  </g>
+</svg>

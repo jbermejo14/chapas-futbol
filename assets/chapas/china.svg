@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <!-- Fondo Rojo vibrante (revolución) -->
+  <rect width="900" height="600" fill="#DE2910"/>
+  
+  <!-- Definición de la estrella base de cinco puntas -->
+  <defs>
+    <!-- Una estrella centrada en (0,0) con un radio exterior de 1 unidad.
+         El radio interior es aproximadamente 0.382 unidades.
+         Los puntos del polígono están calculados matemáticamente. -->
+    <polygon id="star" points="0,-1 0.2245,-0.3090 0.9511,-0.3090 0.3633,0.1180 0.5878,0.8090 0,0.3820 -0.5878,0.8090 -0.3633,0.1180 -0.9511,-0.3090 -0.2245,-0.3090" fill="#FDE120"/>
+  </defs>
+  
+  <!-- Grupo para las estrellas en el cantón (primer cuarto)
+       Utilizamos una escala de 30x30 unidades para mayor precisión,
+       donde la cuadrícula oficial de 15x10 se traduce en 450x300. -->
+  <g>
+    <!-- Estrella Grande (El Partido): radio 3 unidades (90 píxeles), centro en (5,5) de la cuadrícula -->
+    <use href="#star" transform="translate(150, 150) scale(90)"/>
+    
+    <!-- Estrellas Pequeñas (Clases): radio 1 unidad (30 píxeles), rotadas para apuntar a la grande -->
+    <!-- Ángulos de rotación calculados matemáticamente para una punta apuntando al centro de la grande
+         y convertidos a la rotación horaria de SVG. -->
+    
+    <!-- Pequeña 1: centro en (10,2) -->
+    <use href="#star" transform="translate(300, 60) rotate(-59) scale(30)"/>
+    
+    <!-- Pequeña 2: centro en (12,4) -->
+    <use href="#star" transform="translate(360, 120) rotate(-82) scale(30)"/>
+    
+    <!-- Pequeña 3: centro en (12,7) -->
+    <use href="#star" transform="translate(360, 210) rotate(-106) scale(30)"/>
+    
+    <!-- Pequeña 4: centro en (10,9) -->
+    <use href="#star" transform="translate(300, 270) rotate(-129) scale(30)"/>
+  </g>
+</svg>

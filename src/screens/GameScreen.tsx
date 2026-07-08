@@ -260,11 +260,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         setGoalBanner(null);
         goalScale.setValue(0);
         
-        if (newScore[1] >= 3) {
+        if (newScore[1] >= 2) {
           setWinner(1);
           addWin();
-          addCoins(50); // Flat reward for winning in 1P mode
-        } else if (newScore[2] >= 3) {
+          addCoins(100); // Doble de 50 si gana
+        } else if (newScore[2] >= 2) {
           setWinner(2);
           if (mode === '2P') addWin();
         } else {

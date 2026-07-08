@@ -10,13 +10,18 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { ShopScreen } from '../screens/ShopScreen';
 import { CustomizationScreen } from '../screens/CustomizationScreen';
 import { ArenaScreen } from '../screens/ArenaScreen';
+import { FriendsScreen } from '../screens/FriendsScreen';
 import { colors } from '../theme/colors';
 import { TeamId, FormationId, FieldId } from '../data/chapasData';
 import { useChapasStore } from '../store/chapasStore';
+import { listenForIncomingChallenges, respondToChallenge, ChallengeData } from '../services/challengeService';
+import { Modal, Alert } from 'react-native';
+import { ComicPanel } from '../components/ComicPanel';
+import { HypercasualButton } from '../components/HypercasualButton';
 
 export type TabParamList = {
   HomeTab: undefined;
-  ArenaTab: undefined;
+  FriendsTab: undefined;
   CustomizationTab: undefined;
   ShopTab: undefined;
 };
@@ -31,6 +36,8 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
+import { CustomTabBar } from '../components/CustomTabBar';
+
 const HeaderLeft = () => {
   const navigation = useNavigation<any>();
   return (
@@ -44,59 +51,44 @@ const HeaderRight = () => {
   const { coins } = useChapasStore();
   return (
     <View style={styles.headerRightBadge}>
-      <Text style={styles.headerRightText}>🪙 {coins}</Text>
+      <Text style={styles.headerRightIcon}>🪙</Text>
+      <Text style={styles.headerRightText}>{coins.toLocaleString()}</Text>
     </View>
   );
 };
 
+const HeaderTitle = () => (
+  <Text style={styles.headerTitleText}>FINGER FOOTBALL</Text>
+);
+
 const MainTabs = () => {
   return (
     <Tab.Navigator
+      tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.secondary,
+          backgroundColor: '#fcf9f8',
           height: 90,
         },
         headerTitleAlign: 'center',
-        headerTintColor: '#FFF',
-        headerTitleStyle: {
-          fontWeight: '900',
-          fontSize: 20,
-        },
-        headerShadowVisible: false,
+        headerTitle: () => <HeaderTitle />,
+        headerShadowVisible: true,
         headerLeft: () => <HeaderLeft />,
         headerRight: () => <HeaderRight />,
-        tabBarStyle: {
-          backgroundColor: '#000', // Black background for tabs
-          borderTopWidth: 0,
-          height: 65,
-          paddingBottom: 5,
-          paddingTop: 5,
-        },
-        tabBarActiveTintColor: '#FFF',
-        tabBarInactiveTintColor: '#666',
-        tabBarItemStyle: {
-          borderRadius: 20,
-          marginHorizontal: 5,
-        },
-        tabBarActiveBackgroundColor: colors.secondary, // Orange pill for active tab
       }}
     >
       <Tab.Screen 
         name="HomeTab" 
         component={HomeScreen} 
         options={{ 
-          title: 'HOME',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🏠</Text>
+          title: 'JUGAR',
         }} 
       />
       <Tab.Screen 
-        name="ArenaTab" 
-        component={ArenaScreen} 
+        name="FriendsTab" 
+        component={FriendsScreen} 
         options={{ 
-          title: 'STADIUM SELECT',
-          tabBarLabel: 'ARENA',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>⚽</Text>
+          title: 'AMIGOS',
         }} 
       />
       <Tab.Screen 
@@ -104,7 +96,6 @@ const MainTabs = () => {
         component={CustomizationScreen} 
         options={{ 
           title: 'CLUB',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👥</Text>
         }} 
       />
       <Tab.Screen 
@@ -113,16 +104,81 @@ const MainTabs = () => {
         options={{ 
           title: 'STORE',
           headerShown: false,
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🛒</Text>
         }} 
       />
     </Tab.Navigator>
   );
 };
 
+const GlobalChallengeListener = () => {
+  const { user, coins, deductCoins } = useChapasStore();
+  const navigation = useNavigation<any>();
+  const [incomingChallenge, setIncomingChallenge] = React.useState<ChallengeData | null>(null);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const unsubscribe = listenForIncomingChallenges(user.id, (challenge) => {
+      setIncomingChallenge(challenge);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAccept = async () => {
+    if (!incomingChallenge) return;
+    if (coins < 50) {
+      Alert.alert('Saldo Insuficiente', 'No tienes 50🪙 para aceptar este reto.');
+      await respondToChallenge(incomingChallenge.id!, false);
+      setIncomingChallenge(null);
+      return;
+    }
+    
+    deductCoins(50);
+    const matchId = incomingChallenge.id!;
+    await respondToChallenge(incomingChallenge.id!, true, matchId);
+    
+    navigation.navigate('Game', {
+      mode: 'ONLINE',
+      p1Team: 'spain',
+      p1Formation: '1-2-1-1',
+      p2Team: 'england',
+      p2Formation: '1-2-1-1',
+      fieldId: 'stadium-usa',
+      matchId
+    });
+    setIncomingChallenge(null);
+  };
+
+  const handleDecline = async () => {
+    if (!incomingChallenge) return;
+    await respondToChallenge(incomingChallenge.id!, false);
+    setIncomingChallenge(null);
+  };
+
+  if (!incomingChallenge) return null;
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 1000}}>
+        <ComicPanel style={{width: 320, alignItems: 'center', padding: 25}}>
+          <Text style={{fontSize: 24, fontWeight: '900', color: '#000', textAlign: 'center'}}>¡NUEVO RETO!</Text>
+          <Text style={{fontSize: 18, fontWeight: 'bold', color: colors.primary, marginVertical: 15, textAlign: 'center'}}>
+            {incomingChallenge.challengerName} quiere jugar.
+          </Text>
+          <Text style={{fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 20}}>
+            Aceptar cuesta 50🪙. ¿Estás listo?
+          </Text>
+          <HypercasualButton title="ACEPTAR (50🪙)" color="secondary" onPress={handleAccept} style={{width: '100%', marginBottom: 10}} />
+          <HypercasualButton title="RECHAZAR" color="primary" onPress={handleDecline} style={{width: '100%'}} />
+        </ComicPanel>
+      </View>
+    </Modal>
+  );
+};
+
 export const AppNavigator = () => {
   return (
     <NavigationContainer>
+      <GlobalChallengeListener />
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
@@ -163,30 +219,43 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
   headerLeftBtn: {
     marginLeft: 15,
-    backgroundColor: '#FFF',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: '#39ff14',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000',
+    borderWidth: 2,
+    borderColor: '#1c1b1b',
   },
   headerLeftIcon: {
-    fontSize: 20,
+    fontSize: 24,
   },
   headerRightBadge: {
     marginRight: 15,
-    backgroundColor: '#333',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fcd400',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: '#1c1b1b',
+  },
+  headerRightIcon: {
+    fontSize: 16,
+    marginRight: 4,
   },
   headerRightText: {
-    color: '#FFD700',
+    color: '#6e5c00',
     fontWeight: '900',
     fontSize: 14,
+  },
+  headerTitleText: {
+    fontSize: 24,
+    fontStyle: 'italic',
+    fontWeight: '900',
+    color: '#1c1b1b',
+    letterSpacing: -1,
   }
 });

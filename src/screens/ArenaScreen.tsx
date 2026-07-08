@@ -39,6 +39,11 @@ export const ArenaScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handlePlay = (arenaId: ArenaId) => {
+    if (coins < 50) {
+      Alert.alert('Saldo Insuficiente', 'Necesitas 50 🪙 para jugar el partido.');
+      return;
+    }
+    deductCoins(50);
     const arena = ARENAS[arenaId];
     // Start match vs IA in this arena
     navigation.navigate('Game', { 

@@ -11,6 +11,7 @@ export interface MatchData {
   p1Team: TeamId;
   player2?: string;
   p2Team?: TeamId;
+  fieldId: string;
   createdAt: any;
 }
 
@@ -21,78 +22,93 @@ export interface MatchData {
 export const findOrCreateMatch = async (
   userId: string, 
   preferredTeam: TeamId,
+  fieldId: string,
   onMatchFound: (matchId: string, opponentTeam: TeamId) => void,
   onTimeout: () => void
 ): Promise<() => void> => {
-  
-  const matchesRef = collection(db, 'matches');
-  
-  // 1. Buscar partida disponible
-  const q = query(matchesRef, where('status', '==', 'waiting'));
-  const querySnapshot = await getDocs(q);
-  
-  let availableMatch: MatchData | null = null;
-  let availableMatchId = '';
-
-  querySnapshot.forEach((doc) => {
-    // Avoid joining our own ghost matches if any
-    if (doc.data().player1 !== userId && !availableMatch) {
-      availableMatch = doc.data() as MatchData;
-      availableMatchId = doc.id;
-    }
-  });
-
-  if (availableMatch) {
-    // UNIRSE A PARTIDA EXISTENTE
-    await updateDoc(doc(db, 'matches', availableMatchId), {
-      status: 'playing',
-      player2: userId,
-      p2Team: preferredTeam
-    });
+  try {
+    const matchesRef = collection(db, 'matches');
     
-    // Todo listo, avisamos a la UI para que navegue al juego
-    // @ts-ignore
-    onMatchFound(availableMatchId, availableMatch.p1Team);
-    return () => {}; // No cleanup needed
-  } else {
-    // NO HAY PARTIDAS. CREAR UNA.
-    const newMatchRef = await addDoc(matchesRef, {
-      status: 'waiting',
-      player1: userId,
-      p1Team: preferredTeam,
-      createdAt: serverTimestamp()
+    // 1. Buscar partida disponible en el mismo campo
+    const q = query(matchesRef, where('status', '==', 'waiting'), where('fieldId', '==', fieldId));
+    const querySnapshot = await getDocs(q);
+    
+    let availableMatch: MatchData | null = null;
+    let availableMatchId = '';
+
+    querySnapshot.forEach((doc) => {
+      // Avoid joining our own ghost matches if any
+      if (doc.data().player1 !== userId && !availableMatch) {
+        availableMatch = doc.data() as MatchData;
+        availableMatchId = doc.id;
+      }
     });
 
-    let timeoutReached = false;
-    
-    // 6 segundos de timeout
-    const timeout = setTimeout(async () => {
-      timeoutReached = true;
-      unsubscribe();
-      // Borrar la sala para que no se quede colgada
-      await deleteDoc(newMatchRef).catch(() => {});
-      onTimeout();
-    }, 6000);
-
-    // Escuchar si alguien se une
-    const unsubscribe = onSnapshot(newMatchRef, (docSnap) => {
-      if (timeoutReached) return;
+    if (availableMatch) {
+      // UNIRSE A PARTIDA EXISTENTE
+      await updateDoc(doc(db, 'matches', availableMatchId), {
+        status: 'playing',
+        player2: userId,
+        p2Team: preferredTeam
+      });
       
-      const data = docSnap.data() as MatchData | undefined;
-      if (data && data.status === 'playing' && data.player2) {
-        clearTimeout(timeout);
-        unsubscribe();
-        onMatchFound(docSnap.id, data.p2Team as TeamId);
-      }
-    });
+      // Todo listo, avisamos a la UI para que navegue al juego
+      // @ts-ignore
+      onMatchFound(availableMatchId, availableMatch.p1Team);
+      return () => {}; // No cleanup needed
+    } else {
+      // NO HAY PARTIDAS. CREAR UNA.
+      const newMatchRef = await addDoc(matchesRef, {
+        status: 'waiting',
+        player1: userId,
+        p1Team: preferredTeam,
+        fieldId: fieldId,
+        createdAt: serverTimestamp()
+      });
 
-    // Devolver una función para cancelar manualmente si el usuario se arrepiente
-    return () => {
-      if (!timeoutReached) {
-        clearTimeout(timeout);
+      let timeoutReached = false;
+      
+      // 6 segundos de timeout
+      const timeout = setTimeout(async () => {
+        timeoutReached = true;
         unsubscribe();
-        deleteDoc(newMatchRef).catch(() => {});
-      }
-    };
+        // Borrar la sala para que no se quede colgada
+        await deleteDoc(newMatchRef).catch(() => {});
+        onTimeout();
+      }, 6000);
+
+      // Escuchar si alguien se une
+      const unsubscribe = onSnapshot(newMatchRef, (docSnap) => {
+        if (timeoutReached) return;
+        
+        const data = docSnap.data() as MatchData | undefined;
+        if (data && data.status === 'playing' && data.player2) {
+          clearTimeout(timeout);
+          unsubscribe();
+          onMatchFound(docSnap.id, data.p2Team as TeamId);
+        }
+      }, (error) => {
+        // En caso de que se pierdan los permisos de snapshot
+        if (!timeoutReached) {
+          clearTimeout(timeout);
+          unsubscribe();
+          onTimeout();
+        }
+      });
+
+      // Devolver una función para cancelar manualmente si el usuario se arrepiente
+      return () => {
+        if (!timeoutReached) {
+          clearTimeout(timeout);
+          unsubscribe();
+          deleteDoc(newMatchRef).catch(() => {});
+        }
+      };
+    }
+  } catch (error) {
+    console.warn("Matchmaking failed due to network or permission error:", error);
+    // Timeout inmediato para fallback contra IA
+    onTimeout();
+    return () => {};
   }
 };

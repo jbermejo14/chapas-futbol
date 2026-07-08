@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme/colors';
 import { useChapasStore } from '../store/chapasStore';
 import { TEAMS, FORMATIONS, FIELDS, TeamId, FormationId, FieldId } from '../data/chapasData';
 import { ChapaModular } from '../components/ChapaModular';
+import { HypercasualButton } from '../components/HypercasualButton';
+import { ComicPanel } from '../components/ComicPanel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Setup'>;
 
@@ -152,55 +154,98 @@ export const SetupScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>Preparación</Text>
-      <Text style={styles.subtitle}>Victorias acumuladas: {wins}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <HypercasualButton 
+          title="Atrás" 
+          onPress={() => navigation.goBack()} 
+          color="secondary" 
+          style={styles.backButton}
+          textStyle={{fontSize: 14}}
+        />
+        <Text style={styles.title}>Preparación</Text>
+        <View style={{ width: 80 }} />
+      </View>
 
-      {renderFieldSelector()}
-      <View style={styles.divider} />
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 20 }}>
+        
+        <Text style={styles.subtitle}>Victorias: {wins}</Text>
 
-      {renderTeamSelector(1, p1Team, setP1Team)}
-      {renderFormationSelector(1, p1Formation, setP1Formation)}
+        <ComicPanel style={styles.panelSpacing}>
+          {renderFieldSelector()}
+        </ComicPanel>
 
-      <View style={styles.divider} />
+        <ComicPanel style={styles.panelSpacing}>
+          {renderTeamSelector(1, p1Team, setP1Team)}
+          {renderFormationSelector(1, p1Formation, setP1Formation)}
+        </ComicPanel>
 
-      {renderTeamSelector(2, p2Team, setP2Team)}
-      {renderFormationSelector(2, p2Formation, setP2Formation)}
+        <ComicPanel style={styles.panelSpacing}>
+          {renderTeamSelector(2, p2Team, setP2Team)}
+          {renderFormationSelector(2, p2Formation, setP2Formation)}
+        </ComicPanel>
 
-      <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-        <Text style={styles.startButtonText}>COMENZAR PARTIDO</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <HypercasualButton 
+          title="COMENZAR PARTIDO" 
+          color="primary" 
+          onPress={handleStart} 
+        />
+        
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 20,
+  },
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  backButton: {
+    width: 80,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontWeight: '900',
+    color: '#FFF',
     textAlign: 'center',
-    marginBottom: 5,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: '#FFF',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
+    fontWeight: '900',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
   },
-  section: {
+  panelSpacing: {
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    color: colors.text,
+  section: {
     marginBottom: 10,
-    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    color: '#000',
+    marginBottom: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   horizontalScroll: {
     paddingBottom: 10,
@@ -208,13 +253,13 @@ const styles = StyleSheet.create({
   card: {
     width: 100,
     height: 100,
-    borderRadius: 10,
+    borderRadius: 15,
     marginRight: 15,
     padding: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 4,
+    borderColor: '#000',
     overflow: 'hidden',
   },
   fieldCard: {
@@ -233,6 +278,8 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#000',
   },
   teamImagePreview: {
     width: 40,
@@ -240,26 +287,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardText: {
-    color: colors.text,
-    fontWeight: 'bold',
+    color: '#FFF',
+    fontWeight: '900',
     textAlign: 'center',
     fontSize: 12,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
   },
   cardTextHighlight: {
     color: '#FFF',
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center',
     fontSize: 14,
     textShadowColor: '#000',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
     zIndex: 2,
   },
   lockedText: {
-    color: '#FF4444',
-    fontSize: 10,
+    color: '#FF0000',
+    fontSize: 12,
     marginTop: 5,
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center',
   },
   formationGrid: {
@@ -268,45 +318,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   formationButton: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFF',
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 4,
+    borderColor: '#000',
   },
   formationButtonSelected: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(244, 208, 63, 0.2)', // Soft gold
+    backgroundColor: '#FFEB3B', // Comic Yellow
   },
   formationText: {
-    color: colors.text,
+    color: '#000',
     fontSize: 14,
+    fontWeight: '900',
   },
   formationTextSelected: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 2,
-    backgroundColor: colors.surface,
-    marginVertical: 15,
-  },
-  startButton: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 15,
-    alignItems: 'center',
-    marginTop: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  startButtonText: {
-    color: '#1a472a',
-    fontSize: 18,
-    fontWeight: '900',
+    color: '#000',
   },
 });
