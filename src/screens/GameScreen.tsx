@@ -337,20 +337,22 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         const entity = entitiesRef.current.find(e => e.id === state.activeEntityId);
         if (entity) {
           const start = { x: entity.x, y: entity.y };
-          const current = { x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY };
           gameStateRef.current.dragStart = start;
-          gameStateRef.current.dragCurrent = current;
+          gameStateRef.current.dragCurrent = start;
           gameStateRef.current.isAiming = true;
           
           setDragStart(start);
-          setDragCurrent(current);
+          setDragCurrent(start);
           setIsAiming(true);
         }
       },
-      onPanResponderMove: (evt) => {
+      onPanResponderMove: (evt, gestureState) => {
         const state = gameStateRef.current;
         if (!state.isAiming) return;
-        const current = { x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY };
+        const current = { 
+          x: state.dragStart.x + gestureState.dx, 
+          y: state.dragStart.y + gestureState.dy 
+        };
         gameStateRef.current.dragCurrent = current;
         setDragCurrent(current);
       },
@@ -364,11 +366,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         const dx = state.dragStart.x - state.dragCurrent.x;
         const dy = state.dragStart.y - state.dragCurrent.y;
         
-        let vx = dx * 0.1;
-        let vy = dy * 0.1;
+        let vx = dx * 0.15;
+        let vy = dy * 0.15;
         
         const speed = Math.sqrt(vx*vx + vy*vy);
-        const MAX_SPEED = 18;
+        const MAX_SPEED = 28;
         if (speed > MAX_SPEED) {
           vx = (vx / speed) * MAX_SPEED;
           vy = (vy / speed) * MAX_SPEED;
@@ -413,8 +415,8 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     dy -= 10;
     
     const dist = Math.sqrt(dx * dx + dy * dy);
-    // Asegurar que la fuerza de la IA no supere la del jugador (18)
-    const power = 10 + Math.random() * 8; 
+    // IA power up to match player speed (around 25-28)
+    const power = 15 + Math.random() * 12; 
     const vx = (dx / dist) * power;
     const vy = (dy / dist) * power;
 

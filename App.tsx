@@ -13,19 +13,19 @@ export default function App() {
     initializeAuth();
   }, []);
 
-  if (isSplashVisible) {
-    return (
-      <>
-        <CustomSplashScreen onFinish={() => setIsSplashVisible(false)} />
-        <StatusBar hidden />
-      </>
-    );
-  }
-
   return (
     <SafeAreaProvider>
-      <AppNavigator />
-      <StatusBar style="light" />
+      {isSplashVisible ? (
+        <>
+          <CustomSplashScreen onFinish={() => setIsSplashVisible(false)} />
+          <StatusBar hidden />
+        </>
+      ) : (
+        <>
+          <AppNavigator />
+          <StatusBar style="light" />
+        </>
+      )}
     </SafeAreaProvider>
   );
 }
