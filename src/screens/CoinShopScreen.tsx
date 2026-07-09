@@ -8,15 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CoinShop'>;
 
-const AVATAR_IMG = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYGd2hkKSyTa95v78PvmQlrwwnYvR_kvPk13kyncSljMgdDtCk0sMWw68bVQLEEVkTvdyxk-hSLtRigaghPSC-kf8swFmUa2fuNPV6Q28N_qEZS825oii7gS6yqrE3K01LiyOthdRX3VZ5-m4o1jI0v4U3HkIDeqFgIi20KcWhIJskOVwlZDxnEs9JwmzjGwQ7NOMy8tPU6IpKzNN7GSD-eg8BesruFfuSoYWpnwn_dhtJsLWHqR7s5R977Oc2bW2LDiz6MF811-c';
-
 const IMG_1000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQQee3oOWMsHX2SR53bNi7Bjkbtj34mOYjEh9ufWqMHSqblaei7AEHiVqP_6VbcXkyvHcmU_ShAiSwmUONDgISS_fEp9nr1Xo9tXLI0kSVsuEAxo5bZ6gNYgoY8vRa_4MQ2xL_v_CbLbCW92BerxhUTclh-7lrYtmEfEoywke5aVlx4NsyyYbY3xL0raf56sRJV7zRUT_iXk5Cy4vkRMlja8olKaI16OdsgklDhbe3ZhA706PwPZgbm2xNg_XvrjzBNU_zD9t-NyE';
 const IMG_5000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuA1Oiy2-kBzsYQSH9zGCjShCpmqI47F9LHyS7BIduriCfCj9neqRtKkr2pWJ0PnOfvEzmiFdjy54rAttpTetO8n8kduYITJUKFqFzV0iqnmL9S12TzQCSs1KGz2iQ6XiEkfM8WXBQLZh1-O12IC97BmGAR_T8JT1OP824qBu_KwfUQZsLB5DdnsEfg8NASeNWSkYXOl0o2NmL_BoiDZfDttf4Duz777NG2M0-zRDHhmMpF4SiBh4y03TgIyJJlTV-7Yax7mib_zWfw';
 const IMG_10000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCptH1aUBnN3pq5RI7yj8sx-uBFe0q0vwwVFn3S_qfnVHwGZHl9j6IiqgPi4RD4Lly5Bc_UtglemZE69UIbj6GuMtJiRBXdjRTfCMBGoOGVxk5iKUqj2e5rqDKc3bbZKWxG8QRZZZ_cInyaoISq3i3J0uNtJI9nLJznCu276TDALutm1vRGAasD0Mh1AB_0Wpdp_PzaJryYY37bTgwJxGja5d1SLOmmPNdgTiax6iu5bYuZ0He4ZGsxbXGXf-Fv_x5BnbhoWderjRE';
 const IMG_25000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTlOk39BPOmgcHJrewbndvXK_dAE5fCj4fE_BD_JHCJl-RP3ke4jTIr72vhF5GTZGYPbNZDcbYZtB6-RMO7E1K3GDAOJ-t9eDD2yujo_AwBiMEtVYY_0YUh8cD1-R8mcj68sbPmkP1PKPTAisFxwEGVLtQHHVXASac4f7r3LvhpABDUyAfIm5-ZfRyZt57nXeUIan7fFEKV2JcETfkf-EcUZRXHafaWmjYLpQRhOAk2Z2TIuwnnIN6rt_uL8HIyWLfAPCpBPTuZJo';
 
 export const CoinShopScreen: React.FC<Props> = ({ navigation }) => {
-  const { coins, addCoins } = useChapasStore();
+  const { coins, addCoins, user } = useChapasStore();
   const insets = useSafeAreaInsets();
 
   const handleBuy = (amount: number) => {
@@ -29,8 +27,12 @@ export const CoinShopScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.avatarWrapper}>
-            <Image source={{ uri: AVATAR_IMG }} style={styles.avatarImg} />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)} style={styles.avatarWrapper}>
+            {user?.profilePictureUrl ? (
+              <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImg} />
+            ) : (
+              <Text style={{ fontSize: 24 }}>👤</Text>
+            )}
           </TouchableOpacity>
           
           <Text style={styles.headerTitle}>COIN SHOP</Text>

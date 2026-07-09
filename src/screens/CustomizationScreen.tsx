@@ -5,10 +5,8 @@ import { useChapasStore } from '../store/chapasStore';
 import { TEAMS, FORMATIONS, FormationId } from '../data/chapasData';
 import { ChapaModular } from '../components/ChapaModular';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-
-const PROFILE_AVATAR = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYGd2hkKSyTa95v78PvmQlrwwnYvR_kvPk13kyncSljMgdDtCk0sMWw68bVQLEEVkTvdyxk-hSLtRigaghPSC-kf8swFmUa2fuNPV6Q28N_qEZS825oii7gS6yqrE3K01LiyOthdRX3VZ5-m4o1jI0v4U3HkIDeqFgIi20KcWhIJskOVwlZDxnEs9JwmzjGwQ7NOMy8tPU6IpKzNN7GSD-eg8BesruFfuSoYWpnwn_dhtJsLWHqR7s5R977Oc2bW2LDiz6MF811-c';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MiniPitch = ({ formationId, isSelected }: { formationId: string, isSelected: boolean }) => {
   const pitchBg = isSelected ? '#39ff14' : '#e5e2e1'; // primary-container vs surface-variant
@@ -45,10 +43,9 @@ const MiniPitch = ({ formationId, isSelected }: { formationId: string, isSelecte
   );
 };
 
-export const CustomizationScreen: React.FC = () => {
-  const { preferredTeam, preferredFormation, setPreferredTeam, setPreferredFormation, unlockedTeams, coins, addCoins } = useChapasStore();
+export const CustomizationScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { preferredTeam, preferredFormation, setPreferredTeam, setPreferredFormation, unlockedTeams, coins, addCoins, user } = useChapasStore();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
 
   const handleWatchAd = () => {
     Alert.alert(
@@ -67,9 +64,13 @@ export const CustomizationScreen: React.FC = () => {
         {/* Header */}
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
           <View style={styles.headerLeft}>
-            <View style={styles.avatarWrapper}>
-              <Image source={{ uri: PROFILE_AVATAR }} style={styles.avatarImg} />
-            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)} style={styles.avatarWrapper}>
+              {user?.profilePictureUrl ? (
+                <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImg} />
+              ) : (
+                <Text style={{ fontSize: 24 }}>👤</Text>
+              )}
+            </TouchableOpacity>
           </View>
           <Text style={styles.headerTitle}>CLUB</Text>
           <View style={[styles.headerRight, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
@@ -259,10 +260,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#1c1b1b',
-    backgroundColor: '#fcd400',
+    borderColor: '#000',
     overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarImg: {
     width: '100%',

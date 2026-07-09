@@ -19,7 +19,7 @@ const TEAM_PRICE = 200;
 const { width, height } = Dimensions.get('window');
 
 export const ShopScreen: React.FC<Props> = ({ navigation }) => {
-  const { coins, unlockedTeams, deductCoins, unlockTeam } = useChapasStore();
+  const { coins, unlockedTeams, unlockTeam, deductCoins, user } = useChapasStore();
   const insets = useSafeAreaInsets();
 
   const handleBuy = (teamId: TeamId, teamName: string) => {
@@ -51,10 +51,13 @@ export const ShopScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
         <View style={styles.avatarContainer}>
-          <Image 
-            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBh0ET3-hxmCX6j4tr-B3ZpBdEMRZ5FmhbkYIzAKDmdme0TICGNnkylhnW7zKxKutlviLIalL__dP6JW8xCMrBdxCWuj8_NKVXmQKQXcEs9W00wbLYsvqsXJYDDY4OjPfLFWvT5e6BJc3YzpgPoqaZCHbr1KggU88Ibjp5g7olWyjkyObIDzJLGvJkEfIqMl8xB_3PNJIpwSvuwjPqhmFVyvgmM2PFwKkc3cOPZmG6St66NqwFOzkHowYW7xOvihwBlS3nZupgyStc' }} 
-            style={styles.avatarImage} 
-          />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center'}}>
+            {user?.profilePictureUrl ? (
+              <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={{ fontSize: 24 }}>👤</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.headerTitle}>PRO STORE</Text>
