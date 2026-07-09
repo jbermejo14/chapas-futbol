@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TextInput, TouchableOpacity, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme/colors';
@@ -10,7 +11,7 @@ import { HypercasualButton } from '../components/HypercasualButton';
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, wins, coins, level, xp, setUsername } = useChapasStore();
+  const { user, wins, coins, level, xp, setUsername, setProfilePicture } = useChapasStore();
   
   const [localName, setLocalName] = useState('');
 
@@ -25,6 +26,19 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       setUsername(localName);
     }
     navigation.goBack();
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setProfilePicture(result.assets[0].uri);
+    }
   };
 
   const renderFakeSlider = (label: string, percentage: string) => {
@@ -59,9 +73,16 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <ComicPanel style={styles.mainPanel}>
             {/* FOTO DE PERFIL (Cuadrado) */}
             <View style={styles.profileHeader}>
-              <View style={styles.profilePicturePlaceholder}>
-                <Text style={styles.profilePictureIcon}>👤</Text>
-              </View>
+              <TouchableOpacity style={styles.profilePicturePlaceholder} onPress={pickImage} activeOpacity={0.8}>
+                {user?.profilePictureUrl ? (
+                  <Image source={{ uri: user.profilePictureUrl }} style={styles.profileImage} />
+                ) : (
+                  <Text style={styles.profilePictureIcon}>👤</Text>
+                )}
+                <View style={styles.editIconBadge}>
+                  <Text style={{fontSize: 12}}>✏️</Text>
+                </View>
+              </TouchableOpacity>
               <View style={styles.profileInfoRight}>
                 <Text style={styles.playerIdText}>ID: {user ? user.id.slice(0, 8).toUpperCase() : 'CARGANDO...'}</Text>
                 <View style={styles.levelBadge}>
@@ -169,16 +190,35 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     backgroundColor: '#FFF',
-    borderRadius: 20,
     borderWidth: 4,
     borderColor: '#000',
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 0,
+    elevation: 6,
+    position: 'relative',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 56, // slightly less than the container
+  },
+  editIconBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000',
   },
   profilePictureIcon: {
     fontSize: 60,

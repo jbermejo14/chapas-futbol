@@ -26,6 +26,14 @@
       "eas": {
         "projectId": "82a99f9a-d4f6-42f0-b559-dabd799d121a"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you set a profile picture."
+        }
+      ]
+    ]
   }
 }

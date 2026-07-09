@@ -8,6 +8,7 @@ import { FORMATIONS, TEAMS, FIELDS, FormationId, TeamId } from '../data/chapasDa
 import { colors } from '../theme/colors';
 import { ChapaModular } from '../components/ChapaModular';
 import { MatchResultOverlay } from '../components/MatchResultOverlay';
+import { AI_PROFILES } from '../data/aiProfiles';
 import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
@@ -81,10 +82,12 @@ const createInitialFormation = (p1FormId: FormationId, p2FormId: FormationId, cu
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { mode, p1Team, p2Team, p1Formation, p2Formation, fieldId, matchId } = route.params;
-  const { addWin, addCoins } = useChapasStore();
+  const { addWin, addCoins, user, level } = useChapasStore();
   const team1 = TEAMS[p1Team];
   const team2 = TEAMS[p2Team];
   const currentField = FIELDS[fieldId] || FIELDS['stadium-green'];
+  
+  const cpuProfile = useRef(AI_PROFILES[Math.floor(Math.random() * AI_PROFILES.length)]).current;
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [activePlayer, setActivePlayer] = useState<1 | 2>(1);
@@ -632,13 +635,19 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.scoreboardInner}>
           {/* HOME Team */}
           <View style={styles.scoreSide}>
-            <View style={styles.teamAvatar}>
-              <ChapaModular size={48} FlagSvg={team1.svg} fallbackColor={team1.colorPrimary} />
+            <View style={styles.profileAvatarContainer}>
+              {user?.profilePictureUrl ? (
+                <Image source={{ uri: user.profilePictureUrl }} style={styles.profileAvatarImage} />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  <Ionicons name="person" size={28} color="#000" />
+                </View>
+              )}
               <View style={{position: 'absolute', bottom: -10, backgroundColor: colors.blueAccent, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#000'}}>
-                <Text style={{color: '#FFF', fontSize: 10, fontWeight: '900'}}>LVL {useChapasStore.getState().level}</Text>
+                <Text style={{color: '#FFF', fontSize: 10, fontWeight: '900'}}>LVL {level}</Text>
               </View>
             </View>
-            <Text style={styles.teamLabel}>TÚ</Text>
+            <Text style={styles.teamLabel} numberOfLines={1}>{user?.username || 'TÚ'}</Text>
           </View>
 
           {/* Central Score Area */}
@@ -662,9 +671,15 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {/* AWAY Team */}
           <View style={styles.teamSectionRight}>
-            <Text style={styles.teamLabel}>{mode === '2P' ? 'P2' : 'CPU'}</Text>
-            <View style={styles.teamAvatar}>
-              <ChapaModular size={48} FlagSvg={team2.svg} fallbackColor={team2.colorPrimary} />
+            <Text style={styles.teamLabel} numberOfLines={1}>{mode === '2P' ? 'P2' : cpuProfile.name}</Text>
+            <View style={styles.profileAvatarContainer}>
+              {mode !== '2P' && cpuProfile.profilePictureUrl ? (
+                <Image source={{ uri: cpuProfile.profilePictureUrl }} style={styles.profileAvatarImage} />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  <Ionicons name="person" size={28} color="#000" />
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -854,6 +869,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 8,
+  },
+  profileAvatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#000',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  profileAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+    backgroundColor: '#e6e6e6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
   scoreSide: {
     flex: 1,
@@ -1084,10 +1127,11 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 30, // Increased bottom margin
     left: 20,
+    right: 20,
     flexDirection: 'row',
-    gap: 15,
+    justifyContent: 'space-between',
   },
   controlBtn: {
     width: 50,

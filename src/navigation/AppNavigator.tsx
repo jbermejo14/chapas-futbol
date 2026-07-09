@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -42,9 +42,14 @@ import { CustomTabBar } from '../components/CustomTabBar';
 
 const HeaderLeft = () => {
   const navigation = useNavigation<any>();
+  const { user } = useChapasStore();
   return (
     <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.headerLeftBtn}>
-      <Text style={styles.headerLeftIcon}>👤</Text>
+      {user?.profilePictureUrl ? (
+        <Image source={{ uri: user.profilePictureUrl }} style={styles.headerProfileImage} />
+      ) : (
+        <Text style={styles.headerLeftIcon}>👤</Text>
+      )}
     </TouchableOpacity>
   );
 };
@@ -286,6 +291,11 @@ const styles = StyleSheet.create({
   },
   headerLeftIcon: {
     fontSize: 24,
+  },
+  headerProfileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   headerRightBadge: {
     marginRight: 15,

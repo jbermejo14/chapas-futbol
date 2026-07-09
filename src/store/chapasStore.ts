@@ -9,6 +9,7 @@ export interface UserProfile {
   id: string;
   username: string;
   tag: string;
+  profilePictureUrl?: string | null;
 }
 
 interface ChapasState {
@@ -31,6 +32,7 @@ interface ChapasState {
   setPreferredTeam: (teamId: TeamId) => void;
   setPreferredFormation: (formationId: FormationId) => void;
   setUsername: (username: string) => void;
+  setProfilePicture: (url: string) => void;
   addFriend: (userId: string) => void;
   removeFriend: (userId: string) => void;
   resetProgress: () => void;
@@ -123,8 +125,18 @@ export const useChapasStore = create<ChapasState>()(
 
       setUsername: (username) => set((state) => {
         if (state.user) {
+          const newUser = { ...state.user, username };
           updateDoc(doc(db, 'users', state.user.id), { username }).catch(console.error);
-          return { user: { ...state.user, username } };
+          return { user: newUser };
+        }
+        return state;
+      }),
+
+      setProfilePicture: (url) => set((state) => {
+        if (state.user) {
+          const newUser = { ...state.user, profilePictureUrl: url };
+          updateDoc(doc(db, 'users', state.user.id), { profilePictureUrl: url }).catch(console.error);
+          return { user: newUser };
         }
         return state;
       }),
