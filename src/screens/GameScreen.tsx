@@ -647,7 +647,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text style={{color: '#FFF', fontSize: 10, fontWeight: '900'}}>LVL {level}</Text>
               </View>
             </View>
-            <Text style={styles.teamLabel} numberOfLines={1}>{user?.username || 'TÚ'}</Text>
           </View>
 
           {/* Central Score Area */}
@@ -671,7 +670,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {/* AWAY Team */}
           <View style={styles.teamSectionRight}>
-            <Text style={styles.teamLabel} numberOfLines={1}>{mode === '2P' ? 'P2' : cpuProfile.name}</Text>
             <View style={styles.profileAvatarContainer}>
               {mode !== '2P' && cpuProfile.profilePictureUrl ? (
                 <Image source={{ uri: cpuProfile.profilePictureUrl }} style={styles.profileAvatarImage} />
