@@ -7,7 +7,7 @@ import { TabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme/colors';
 import { useChapasStore } from '../store/chapasStore';
 import { findOrCreateMatch } from '../services/matchmaking';
-import { ARENAS, ArenaId, FIELDS } from '../data/chapasData';
+import { ARENAS, ArenaId, FIELDS, TEAMS } from '../data/chapasData';
 import { HypercasualButton } from '../components/HypercasualButton';
 import { ComicPanel } from '../components/ComicPanel';
 
@@ -19,61 +19,42 @@ type Props = CompositeScreenProps<
 >;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, preferredTeam, preferredFormation } = useChapasStore();
+  const { user, preferredTeam, preferredFormation, coins, deductCoins } = useChapasStore();
   const [isSearching, setIsSearching] = useState(false);
   const [cancelMatchmaking, setCancelMatchmaking] = useState<(() => void) | null>(null);
 
   const handlePlayArena = async (arenaId: ArenaId) => {
     const arena = ARENAS[arenaId];
 
-    if (!user) {
-      // Si por lo que sea Firebase no ha cargado, jugamos contra la IA directamente
+    if (coins < arena.entryFee) {
+      Alert.alert('Monedas Insuficientes', `Necesitas ${arena.entryFee} 🪙 para jugar en ${arena.name}.`);
+      return;
+    }
+    
+    deductCoins(arena.entryFee);
+
+    setIsSearching(true);
+    
+    // Fake matchmaking (wait 5 seconds, match with AI pretending to be human)
+    const timeout = setTimeout(() => {
+      setIsSearching(false);
+      setCancelMatchmaking(null);
+      
+      const teams = Object.keys(TEAMS) as Array<keyof typeof TEAMS>;
+      const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+      
       navigation.navigate('Game', {
         mode: '1P',
         p1Team: preferredTeam,
         p1Formation: preferredFormation,
-        p2Team: 'france', // IA
+        p2Team: randomTeam,
         p2Formation: '1-2-1-1',
-        fieldId: arena.fieldId
+        fieldId: arena.fieldId,
+        entryFee: arena.entryFee
       });
-      return;
-    }
-
-    setIsSearching(true);
-    const cancelFn = await findOrCreateMatch(
-      user.id,
-      preferredTeam,
-      arena.fieldId,
-      (matchId, opponentTeam) => {
-        setIsSearching(false);
-        setCancelMatchmaking(null);
-        navigation.navigate('Game', {
-          mode: 'ONLINE',
-          p1Team: preferredTeam,
-          p1Formation: preferredFormation,
-          p2Team: opponentTeam,
-          p2Formation: '1-2-1-1', // Default for now
-          fieldId: arena.fieldId,
-          matchId
-        });
-      },
-      () => {
-        // Timeout reached (6 segundos) o error de conexión
-        setIsSearching(false);
-        setCancelMatchmaking(null);
-        // Fallback: vs IA
-        navigation.navigate('Game', {
-          mode: '1P',
-          p1Team: preferredTeam,
-          p1Formation: preferredFormation,
-          p2Team: 'france', // IA
-          p2Formation: '1-2-1-1',
-          fieldId: arena.fieldId
-        });
-      }
-    );
+    }, 5000);
     
-    setCancelMatchmaking(() => cancelFn);
+    setCancelMatchmaking(() => () => clearTimeout(timeout));
   };
 
   const handleCancelSearch = () => {
@@ -88,10 +69,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <SoccerFieldBackground>
         <View style={styles.container}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.title}>FÚTBOL</Text>
-            <Text style={styles.subtitle}>CHAPAS</Text>
-          </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent} style={styles.scrollView}>
             
@@ -101,7 +78,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={arena.id} style={styles.card}>
                   <View style={styles.imageContainer}>
-                    {field.image ? (
+                    {arena.previewImage ? (
+                      <Image source={arena.previewImage} style={styles.arenaImage} />
+                    ) : field.image ? (
                       <Image source={field.image} style={styles.arenaImage} />
                     ) : (
                       <View style={[styles.arenaImagePlaceholder, { backgroundColor: field.color }]} />
@@ -115,7 +94,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
                     <View style={styles.cardActionContainer}>
                       <HypercasualButton 
-                        title="JUGAR" 
+                        title={`JUGAR (${arena.entryFee}🪙)`} 
                         color="secondary" 
                         onPress={() => handlePlayArena(arena.id)} 
                         style={styles.cardButton} 
@@ -197,6 +176,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
+    paddingTop: 25,
     paddingBottom: 40,
     paddingHorizontal: 20,
   },

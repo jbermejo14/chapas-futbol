@@ -10,7 +10,7 @@ import { HypercasualButton } from '../components/HypercasualButton';
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, wins, coins, setUsername } = useChapasStore();
+  const { user, wins, coins, level, xp, setUsername } = useChapasStore();
   
   const [localName, setLocalName] = useState('');
 
@@ -32,8 +32,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.sliderContainer}>
         <Text style={styles.sliderLabel}>{label}</Text>
         <View style={styles.sliderTrack}>
-          <View style={[styles.sliderFill, { width: percentage }]} />
-          <View style={[styles.sliderThumb, { left: percentage }]} />
+          <View style={[styles.sliderFill, { width: percentage as any }]} />
+          <View style={[styles.sliderThumb, { left: percentage as any }]} />
         </View>
       </View>
     );
@@ -62,7 +62,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.profilePicturePlaceholder}>
                 <Text style={styles.profilePictureIcon}>👤</Text>
               </View>
-              <Text style={styles.playerIdText}>ID: {user ? user.id.slice(0, 8).toUpperCase() : 'CARGANDO...'}</Text>
+              <View style={styles.profileInfoRight}>
+                <Text style={styles.playerIdText}>ID: {user ? user.id.slice(0, 8).toUpperCase() : 'CARGANDO...'}</Text>
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelBadgeText}>Nivel {level}</Text>
+                </View>
+              </View>
             </View>
 
             {/* INPUT DEL NOMBRE */}
@@ -87,6 +92,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{coins} 🪙</Text>
                 <Text style={styles.statLabel}>Monedas</Text>
+              </View>
+            </View>
+
+            {/* XP PROGRESS */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Experiencia</Text>
+              <View style={styles.xpContainer}>
+                <View style={styles.xpBarTrack}>
+                  <View style={[styles.xpBarFill, { width: `${(xp / (level * 500)) * 100}%` }]} />
+                </View>
+                <Text style={styles.xpText}>{xp} / {level * 500} XP</Text>
               </View>
             </View>
 
@@ -125,8 +141,29 @@ const styles = StyleSheet.create({
   },
 
   profileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+  },
+  profileInfoRight: {
+    flex: 1,
+    marginLeft: 15,
+    justifyContent: 'center',
+  },
+  levelBadge: {
+    backgroundColor: colors.blueAccent,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#000',
+    alignSelf: 'flex-start',
+    marginTop: 5,
+  },
+  levelBadgeText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
   },
   profilePicturePlaceholder: {
     width: 120,
@@ -187,7 +224,35 @@ const styles = StyleSheet.create({
   },
   statBox: { alignItems: 'center' },
   statValue: { color: colors.primary, fontSize: 32, fontWeight: '900', textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0 },
-  statLabel: { color: '#000', fontSize: 14, marginTop: 5, textTransform: 'uppercase', fontWeight: '900' },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+
+  xpContainer: {
+    marginTop: 10,
+  },
+  xpBarTrack: {
+    height: 20,
+    backgroundColor: '#CCC',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    overflow: 'hidden',
+  },
+  xpBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+  },
+  xpText: {
+    textAlign: 'center',
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#666',
+  },
 
   sliderContainer: {
     marginBottom: 20,

@@ -9,7 +9,7 @@ import { useChapasStore } from '../store/chapasStore';
 import { ARENAS, ArenaId, FIELDS } from '../data/chapasData';
 
 type Props = CompositeScreenProps<
-  BottomTabScreenProps<TabParamList, 'ArenaTab'>,
+  BottomTabScreenProps<TabParamList, 'HomeTab'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 
@@ -40,7 +40,15 @@ export const ArenaScreen: React.FC<Props> = ({ navigation }) => {
 
   const handlePlay = (arenaId: ArenaId) => {
     if (coins < 50) {
-      Alert.alert('Saldo Insuficiente', 'Necesitas 50 🪙 para jugar el partido.');
+      Alert.alert(
+        'Saldo Insuficiente',
+        'No tienes suficientes monedas. ¿Qué te gustaría hacer?',
+        [
+          { text: 'Ver anuncio (+50 🪙)', onPress: () => useChapasStore.getState().addCoins(50) },
+          { text: 'Ir a tienda', onPress: () => navigation.navigate('CoinShop' as never) },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
       return;
     }
     deductCoins(50);
@@ -64,19 +72,21 @@ export const ArenaScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {Object.values(ARENAS).map((arena) => {
             const isUnlocked = unlockedArenas.includes(arena.id);
-            const canAfford = coins >= arena.unlockCost;
+            const canAfford = coins >= arena.entryFee;
             const field = FIELDS[arena.fieldId];
 
             return (
               <View key={arena.id} style={styles.card}>
                 <View style={styles.imageContainer}>
-                  {field.image ? (
+                  {arena.previewImage ? (
+                    <Image source={arena.previewImage} style={styles.arenaImage} />
+                  ) : field.image ? (
                     <Image source={field.image} style={styles.arenaImage} />
                   ) : (
                     <View style={[styles.arenaImagePlaceholder, { backgroundColor: field.color }]} />
                   )}
                   <View style={styles.costBadge}>
-                    <Text style={styles.costText}>🪙 {arena.unlockCost}</Text>
+                    <Text style={styles.costText}>🪙 {arena.entryFee}</Text>
                   </View>
                 </View>
 
@@ -95,7 +105,7 @@ export const ArenaScreen: React.FC<Props> = ({ navigation }) => {
                   ) : (
                     <TouchableOpacity 
                       style={[styles.unlockButton, !canAfford && styles.lockedButton]} 
-                      onPress={() => canAfford ? handleBuy(arena.id, arena.name, arena.unlockCost) : null}
+                      onPress={() => canAfford ? handleBuy(arena.id, arena.name, arena.entryFee) : null}
                       disabled={!canAfford}
                     >
                       {canAfford && <Text style={styles.unlockIcon}>🔓</Text>}
@@ -224,7 +234,7 @@ const styles = StyleSheet.create({
   unlockButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.blueButton,
+    backgroundColor: colors.blueAccent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 15,

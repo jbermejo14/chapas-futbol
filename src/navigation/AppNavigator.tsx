@@ -11,6 +11,7 @@ import { ShopScreen } from '../screens/ShopScreen';
 import { CustomizationScreen } from '../screens/CustomizationScreen';
 import { ArenaScreen } from '../screens/ArenaScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
+import { CoinShopScreen } from '../screens/CoinShopScreen';
 import { colors } from '../theme/colors';
 import { TeamId, FormationId, FieldId } from '../data/chapasData';
 import { useChapasStore } from '../store/chapasStore';
@@ -30,7 +31,8 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Profile: undefined;
   Setup: { mode: '1P' | '2P' | 'ONLINE' };
-  Game: { mode: '1P' | '2P' | 'ONLINE', p1Team: TeamId, p2Team: TeamId, p1Formation: FormationId, p2Formation: FormationId, fieldId: FieldId, matchId?: string };
+  Game: { mode: '1P' | '2P' | 'ONLINE', p1Team: TeamId, p2Team: TeamId, p1Formation: FormationId, p2Formation: FormationId, fieldId: FieldId, matchId?: string, entryFee?: number };
+  CoinShop: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,11 +50,46 @@ const HeaderLeft = () => {
 };
 
 const HeaderRight = () => {
-  const { coins } = useChapasStore();
+  const { coins, addCoins } = useChapasStore();
+  const navigation = useNavigation<any>();
+
+  const handleWatchAd = () => {
+    Alert.alert(
+      'Recompensa Diaria',
+      '¿Ver un anuncio para recibir 50 monedas?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Ver anuncio', onPress: () => addCoins(50) }
+      ]
+    );
+  };
+
   return (
-    <View style={styles.headerRightBadge}>
-      <Text style={styles.headerRightIcon}>🪙</Text>
-      <Text style={styles.headerRightText}>{coins.toLocaleString()}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <TouchableOpacity 
+        onPress={handleWatchAd} 
+        style={{
+          backgroundColor: '#39ff14',
+          borderRadius: 15,
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          borderWidth: 2,
+          borderColor: '#1c1b1b',
+          shadowColor: '#1c1b1b',
+          shadowOffset: { width: 2, height: 2 },
+          shadowOpacity: 1,
+          shadowRadius: 0,
+          elevation: 2,
+        }}
+      >
+        <Text style={{ fontSize: 14, fontWeight: '900', color: '#1c1b1b' }}>▶ AD</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('CoinShop')}>
+        <View style={styles.headerRightBadge}>
+          <Text style={styles.headerRightIcon}>🪙</Text>
+          <Text style={styles.headerRightText}>{coins.toLocaleString()}</Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -89,6 +126,7 @@ const MainTabs = () => {
         component={FriendsScreen} 
         options={{ 
           title: 'AMIGOS',
+          headerShown: false,
         }} 
       />
       <Tab.Screen 
@@ -96,6 +134,7 @@ const MainTabs = () => {
         component={CustomizationScreen} 
         options={{ 
           title: 'CLUB',
+          headerShown: false,
         }} 
       />
       <Tab.Screen 
@@ -199,7 +238,19 @@ export const AppNavigator = () => {
         <Stack.Screen 
           name="Profile" 
           component={ProfileScreen} 
-          options={{ title: 'PROFILE' }} 
+          options={{ 
+            title: 'PERFIL',
+            headerStyle: { backgroundColor: '#fcf9f8' },
+            headerTintColor: '#1c1b1b',
+            headerTitleStyle: {
+              fontWeight: '900',
+              fontStyle: 'italic',
+              fontSize: 24,
+              color: '#1c1b1b',
+            } as any,
+            headerTitleAlign: 'center',
+            headerShadowVisible: true,
+          }} 
         />
         <Stack.Screen 
           name="Setup" 
@@ -209,7 +260,12 @@ export const AppNavigator = () => {
         <Stack.Screen 
           name="Game" 
           component={GameScreen} 
-          options={{ title: '', headerShown: false }} 
+          options={{ title: 'PARTIDA', headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="CoinShop" 
+          component={CoinShopScreen} 
+          options={{ title: 'COIN SHOP', headerShown: false }} 
         />
       </Stack.Navigator>
     </NavigationContainer>

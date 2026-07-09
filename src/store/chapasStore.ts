@@ -16,6 +16,8 @@ interface ChapasState {
   unlockedArenas: ArenaId[];
   wins: number;
   coins: number;
+  level: number;
+  xp: number;
   preferredTeam: TeamId;
   preferredFormation: FormationId;
   user: UserProfile | null;
@@ -23,6 +25,7 @@ interface ChapasState {
   addWin: () => void;
   addCoins: (amount: number) => void;
   deductCoins: (amount: number) => void;
+  addXp: (amount: number) => void;
   unlockTeam: (teamId: TeamId) => void;
   unlockArena: (arenaId: ArenaId) => void;
   setPreferredTeam: (teamId: TeamId) => void;
@@ -41,6 +44,8 @@ export const useChapasStore = create<ChapasState>()(
       unlockedArenas: ['usa'],
       wins: 0,
       coins: 500,
+      level: 1,
+      xp: 0,
       preferredTeam: 'spain',
       preferredFormation: '1-2-1-1',
       user: null,
@@ -75,6 +80,21 @@ export const useChapasStore = create<ChapasState>()(
         const newCoins = Math.max(0, state.coins - amount);
         if (state.user) updateDoc(doc(db, 'users', state.user.id), { coins: newCoins }).catch(console.error);
         return { coins: newCoins };
+      }),
+
+      addXp: (amount) => set((state) => {
+        let newXp = state.xp + amount;
+        let newLevel = state.level;
+        let xpNeeded = newLevel * 500;
+        
+        while (newXp >= xpNeeded) {
+          newXp -= xpNeeded;
+          newLevel++;
+          xpNeeded = newLevel * 500;
+        }
+
+        if (state.user) updateDoc(doc(db, 'users', state.user.id), { xp: newXp, level: newLevel }).catch(console.error);
+        return { xp: newXp, level: newLevel };
       }),
 
       unlockTeam: (teamId) => set((state) => {

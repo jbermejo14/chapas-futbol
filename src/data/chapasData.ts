@@ -3,7 +3,9 @@ export type TeamId =
   | 'denmark' | 'england' | 'france' | 'germany'
   | 'italy' | 'japan' | 'netherlands' | 'norway'
   | 'peru' | 'portugal' | 'scotland' | 'spain'
-  | 'sweden' | 'uruguay' | 'us';
+  | 'sweden' | 'uruguay' | 'us'
+  | 'china' | 'india' | 'indonesia' | 'korea' | 'malasia' | 'pakistan'
+  | '8ball' | 'basket' | 'pixelatedheart' | 'radioactive' | 'skull' | 'smiley' | 'tenis' | 'thuglife';
 
 export type FieldId = 'stadium-green' | 'stadium-blue' | 'stadium-classic' | 'generic' | 'estadio-espana' | 'estadio-tokyo' | 'estadio-rio' | 'estadio-usa' | 'estadio-amsterdam';
 
@@ -34,7 +36,8 @@ export interface ArenaData {
   id: ArenaId;
   name: string;
   fieldId: FieldId;
-  unlockCost: number;
+  entryFee: number;
+  previewImage?: any;
 }
 
 import SpainSvg from '../../assets/chapas/spain.svg';
@@ -56,6 +59,20 @@ import ScotlandSvg from '../../assets/chapas/scotland.svg';
 import SwedenSvg from '../../assets/chapas/sweden.svg';
 import UruguaySvg from '../../assets/chapas/uruguay.svg';
 import UsaSvg from '../../assets/chapas/usa.svg';
+import ChinaSvg from '../../assets/chapas/china.svg';
+import IndiaSvg from '../../assets/chapas/india.svg';
+import IndonesiaSvg from '../../assets/chapas/indonesia.svg';
+import KoreaSvg from '../../assets/chapas/korea.svg';
+import MalasiaSvg from '../../assets/chapas/malasia.svg';
+import PakistanSvg from '../../assets/chapas/pakistan.svg';
+import EightBallSvg from '../../assets/chapas/8ball.svg';
+import BasketSvg from '../../assets/chapas/basket.svg';
+import PixelatedHeartSvg from '../../assets/chapas/pixelatedheart.svg';
+import RadioactiveSvg from '../../assets/chapas/radioactive.svg';
+import SkullSvg from '../../assets/chapas/skull.svg';
+import SmileySvg from '../../assets/chapas/smiley.svg';
+import TenisSvg from '../../assets/chapas/tenis.svg';
+import ThuglifeSvg from '../../assets/chapas/thuglife.svg';
 
 export const TEAMS: Record<TeamId, TeamData> = {
   'argentina': { id: 'argentina', name: 'Argentina', colorPrimary: '#74ACDF', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: ArgentinaSvg },
@@ -77,6 +94,20 @@ export const TEAMS: Record<TeamId, TeamData> = {
   'sweden': { id: 'sweden', name: 'Sweden', colorPrimary: '#006AA7', colorSecondary: '#FECC00', unlockRequirementWins: 0, svg: SwedenSvg },
   'uruguay': { id: 'uruguay', name: 'Uruguay', colorPrimary: '#7BCCDE', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: UruguaySvg },
   'us': { id: 'us', name: 'USA', colorPrimary: '#B31942', colorSecondary: '#0A3161', unlockRequirementWins: 0, svg: UsaSvg },
+  'china': { id: 'china', name: 'China', colorPrimary: '#EE1C25', colorSecondary: '#FFFF00', unlockRequirementWins: 0, svg: ChinaSvg },
+  'india': { id: 'india', name: 'India', colorPrimary: '#FF9933', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: IndiaSvg },
+  'indonesia': { id: 'indonesia', name: 'Indonesia', colorPrimary: '#FF0000', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: IndonesiaSvg },
+  'korea': { id: 'korea', name: 'South Korea', colorPrimary: '#FFFFFF', colorSecondary: '#CD2E3A', unlockRequirementWins: 0, svg: KoreaSvg },
+  'malasia': { id: 'malasia', name: 'Malaysia', colorPrimary: '#FFCC00', colorSecondary: '#000066', unlockRequirementWins: 0, svg: MalasiaSvg },
+  'pakistan': { id: 'pakistan', name: 'Pakistan', colorPrimary: '#01411C', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: PakistanSvg },
+  '8ball': { id: '8ball', name: '8 Ball', colorPrimary: '#000000', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: EightBallSvg },
+  'basket': { id: 'basket', name: 'Basketball', colorPrimary: '#FF7F00', colorSecondary: '#000000', unlockRequirementWins: 0, svg: BasketSvg },
+  'pixelatedheart': { id: 'pixelatedheart', name: 'Pixel Heart', colorPrimary: '#FF0000', colorSecondary: '#000000', unlockRequirementWins: 0, svg: PixelatedHeartSvg },
+  'radioactive': { id: 'radioactive', name: 'Radioactive', colorPrimary: '#00FF00', colorSecondary: '#000000', unlockRequirementWins: 0, svg: RadioactiveSvg },
+  'skull': { id: 'skull', name: 'Skull', colorPrimary: '#000000', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: SkullSvg },
+  'smiley': { id: 'smiley', name: 'Smiley', colorPrimary: '#FFFF00', colorSecondary: '#000000', unlockRequirementWins: 0, svg: SmileySvg },
+  'tenis': { id: 'tenis', name: 'Tennis', colorPrimary: '#CCFF00', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: TenisSvg },
+  'thuglife': { id: 'thuglife', name: 'Thug Life', colorPrimary: '#000000', colorSecondary: '#FFFFFF', unlockRequirementWins: 0, svg: ThuglifeSvg },
 };
 
 export const FIELDS: Record<FieldId, FieldData> = {
@@ -137,11 +168,11 @@ export const FIELDS: Record<FieldId, FieldData> = {
 };
 
 export const ARENAS: Record<ArenaId, ArenaData> = {
-  'usa': { id: 'usa', name: 'USA', fieldId: 'estadio-usa', unlockCost: 50 },
-  'madrid': { id: 'madrid', name: 'MADRID', fieldId: 'estadio-espana', unlockCost: 100 },
-  'rio': { id: 'rio', name: 'RIO', fieldId: 'estadio-rio', unlockCost: 200 },
-  'amsterdam': { id: 'amsterdam', name: 'AMSTERDAM', fieldId: 'estadio-amsterdam', unlockCost: 400 },
-  'tokyo': { id: 'tokyo', name: 'TOKYO', fieldId: 'estadio-tokyo', unlockCost: 600 }
+  'usa': { id: 'usa', name: 'USA', fieldId: 'estadio-usa', entryFee: 50, previewImage: require('../../assets/imgs/usa.png') },
+  'madrid': { id: 'madrid', name: 'MADRID', fieldId: 'estadio-espana', entryFee: 100, previewImage: require('../../assets/imgs/spain.png') },
+  'rio': { id: 'rio', name: 'RIO', fieldId: 'estadio-rio', entryFee: 200, previewImage: require('../../assets/imgs/rio.png') },
+  'amsterdam': { id: 'amsterdam', name: 'AMSTERDAM', fieldId: 'estadio-amsterdam', entryFee: 400, previewImage: require('../../assets/imgs/amsterdam.png') },
+  'tokyo': { id: 'tokyo', name: 'TOKYO', fieldId: 'estadio-tokyo', entryFee: 600, previewImage: require('../../assets/imgs/tokyo.png') }
 };
 
 export type FormationId = '1-3-1' | '1-2-1-1' | '1-2-2' | '1-4';

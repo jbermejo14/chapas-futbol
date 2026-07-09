@@ -7,6 +7,8 @@ import { useChapasStore } from '../store/chapasStore';
 import { FORMATIONS, TEAMS, FIELDS, FormationId, TeamId } from '../data/chapasData';
 import { colors } from '../theme/colors';
 import { ChapaModular } from '../components/ChapaModular';
+import { MatchResultOverlay } from '../components/MatchResultOverlay';
+import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
@@ -88,6 +90,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const [activePlayer, setActivePlayer] = useState<1 | 2>(1);
   const [score, setScore] = useState({ 1: 0, 2: 0 });
   const [winner, setWinner] = useState<1 | 2 | null>(null);
+  const [matchXpGained, setMatchXpGained] = useState(0);
   
   const [goalBanner, setGoalBanner] = useState<{ scorer: 1 | 2; text: string } | null>(null);
   const goalScale = useRef(new Animated.Value(0)).current;
@@ -139,6 +142,13 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleBackToMenu = () => {
     navigation.navigate('MainTabs');
+  };
+
+  const handleRematch = () => {
+    setScore({ 1: 0, 2: 0 });
+    setActivePlayer(1);
+    setWinner(null);
+    resetBoard();
   };
 
   const updatePhysics = () => {
@@ -280,53 +290,68 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleGoal = (scorer: 1 | 2) => {
-    const newScore = { ...score, [scorer]: score[scorer] + 1 };
-    setScore(newScore);
-    
-    setGoalBanner({ scorer, text: '¡GOL!' });
-
-    Animated.parallel([
-      Animated.spring(goalScale, {
-        toValue: 1,
-        friction: 4,
-        useNativeDriver: true,
-      }),
-      Animated.timing(goalOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
-
-    setTimeout(() => {
-      Animated.timing(goalOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setGoalBanner(null);
-        goalScale.setValue(0);
-        
-        if (newScore[1] >= 2 || newScore[2] >= 2) {
-          setMatchStats({
-            1: { ...matchStatsRef.current[1] },
-            2: { ...matchStatsRef.current[2] }
-          });
+    // Usamos el updater para que no pille state viejo del closure
+    setScore(prevScore => {
+      const newScore = { ...prevScore, [scorer]: prevScore[scorer] + 1 };
+      
+      setGoalBanner({ scorer, text: '¡GOL!' });
+  
+      Animated.parallel([
+        Animated.spring(goalScale, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+        Animated.timing(goalOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
+  
+      setTimeout(() => {
+        Animated.timing(goalOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          setGoalBanner(null);
+          goalScale.setValue(0);
           
-          if (newScore[1] >= 2) {
-            setWinner(1);
-            addWin();
-            addCoins(100); // Doble de 50 si gana
-          } else if (newScore[2] >= 2) {
-            setWinner(2);
-            if (mode === '2P') addWin();
+          if (newScore[1] >= 2 || newScore[2] >= 2) {
+            setMatchStats({
+              1: { ...matchStatsRef.current[1] },
+              2: { ...matchStatsRef.current[2] }
+            });
+            
+            // Calculate XP
+            const p1Goals = newScore[1];
+            const isP1Win = newScore[1] >= 2;
+            const xpGained = (p1Goals * 50) + (isP1Win ? 100 : 0) + 25;
+            setMatchXpGained(xpGained);
+            useChapasStore.getState().addXp(xpGained);
+
+            if (newScore[1] >= 2) {
+              setWinner(1);
+              addWin();
+              const reward = (route.params as any).entryFee ? (route.params as any).entryFee * 2 : 0;
+              if (reward > 0) addCoins(reward);
+            } else if (newScore[2] >= 2) {
+              setWinner(2);
+              if (mode === '2P') {
+                 // In 2P mode, if P2 wins, maybe P2 gets the win? For now just use addWin
+                 addWin();
+              }
+            }
+          } else {
+            setActivePlayer(scorer === 1 ? 2 : 1);
+            resetBoard();
           }
-        } else {
-          setActivePlayer(scorer === 1 ? 2 : 1);
-          resetBoard();
-        }
-      });
-    }, 2000);
+        });
+      }, 2000);
+
+      return newScore;
+    });
   };
 
   const evaluateTurn = () => {
@@ -421,11 +446,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         const dx = state.dragStart.x - state.dragCurrent.x;
         const dy = state.dragStart.y - state.dragCurrent.y;
         
-        let vx = dx * 0.15;
-        let vy = dy * 0.15;
+        let vx = dx * 0.12;
+        let vy = dy * 0.12;
         
         const speed = Math.sqrt(vx*vx + vy*vy);
-        const MAX_SPEED = 28;
+        const MAX_SPEED = 22;
         if (speed > MAX_SPEED) {
           vx = (vx / speed) * MAX_SPEED;
           vy = (vy / speed) * MAX_SPEED;
@@ -499,22 +524,57 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
     // Add a tiny bit of random error so the AI is not unbeatable
-    const errorMarginX = (Math.random() - 0.5) * 8; 
-    const errorMarginY = (Math.random() - 0.5) * 8;
+    const errorMarginX = (Math.random() - 0.5) * 2; 
+    const errorMarginY = (Math.random() - 0.5) * 2;
     
     const dx = (idealHitX + errorMarginX) - bestChapa.x;
     const dy = (idealHitY + errorMarginY) - bestChapa.y;
 
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) dist = 0.001; // Avoid NaN
     
-    // Dynamic power: hit harder if the ball is far from the goal, or the chapa is far from the ball
-    const neededPower = 15 + (bgDist / BOARD_HEIGHT) * 10 + (dist / BOARD_HEIGHT) * 10;
-    const power = Math.max(15, Math.min(28, neededPower + (Math.random() * 4 - 2)));
+    // Reduce max power and add slight error
+    const neededPower = 12 + (bgDist / BOARD_HEIGHT) * 10 + (dist / BOARD_HEIGHT) * 10;
+    const power = Math.max(12, Math.min(22, neededPower + (Math.random() * 4 - 2)));
 
     const vx = (dx / dist) * power;
     const vy = (dy / dist) * power;
 
-    shoot(bestChapa.id, vx, vy);
+    // Simulate Human Aiming Animation
+    setActiveEntityId(bestChapa.id);
+    const start = { x: bestChapa.x, y: bestChapa.y };
+    setDragStart(start);
+    setDragCurrent(start);
+    setIsAiming(true);
+
+    const targetPullDx = vx / 0.12;
+    const targetPullDy = vy / 0.12;
+
+    let steps = 0;
+    const maxSteps = 20; // 20 frames * 40ms = 800ms of aiming
+    
+    const aimInterval = setInterval(() => {
+      steps++;
+      const progress = steps / maxSteps;
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      const wobbleX = Math.sin(steps * 0.5) * 4 * (1 - easeProgress);
+      const wobbleY = Math.cos(steps * 0.5) * 4 * (1 - easeProgress);
+
+      setDragCurrent({
+        x: start.x - (targetPullDx * easeProgress) + wobbleX,
+        y: start.y - (targetPullDy * easeProgress) + wobbleY
+      });
+
+      if (steps >= maxSteps) {
+        clearInterval(aimInterval);
+        setTimeout(() => {
+          setIsAiming(false);
+          setActiveEntityId(null);
+          shoot(bestChapa.id, vx, vy);
+        }, 400); // Wait 400ms holding the aim before releasing
+      }
+    }, 40);
   };
 
   const renderPitchStripes = () => {
@@ -568,56 +628,63 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.scoreboard}>
-        <Text style={[styles.scoreText, { color: team1.colorPrimary }]}>{team1.name}: {score[1]}</Text>
-        <Text style={[styles.turnText, { color: activePlayer === 1 ? team1.colorPrimary : team2.colorPrimary }]}>
-          {winner ? 'Finalizado' : `Turno: ${activePlayer === 1 ? 'J1' : (mode === '1P' ? 'IA' : 'J2')}`}
-        </Text>
-        <Text style={[styles.scoreText, { color: team2.colorPrimary }]}>
-          {mode === '1P' ? 'IA' : team2.name}: {score[2]}
-        </Text>
+      <View style={styles.scoreboardContainer}>
+        <View style={styles.scoreboardInner}>
+          {/* HOME Team */}
+          <View style={styles.scoreSide}>
+            <View style={styles.teamAvatar}>
+              <ChapaModular size={48} FlagSvg={team1.svg} fallbackColor={team1.colorPrimary} />
+              <View style={{position: 'absolute', bottom: -10, backgroundColor: colors.blueAccent, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#000'}}>
+                <Text style={{color: '#FFF', fontSize: 10, fontWeight: '900'}}>LVL {useChapasStore.getState().level}</Text>
+              </View>
+            </View>
+            <Text style={styles.teamLabel}>TÚ</Text>
+          </View>
+
+          {/* Central Score Area */}
+          <View style={styles.centerSection}>
+            {/* Turn Pill */}
+            <View style={[styles.turnPill, { backgroundColor: activePlayer === 1 ? '#39ff14' : '#ffdad4' }]}>
+              <View style={styles.rimLight} />
+              <Text style={[styles.turnPillText, { color: activePlayer === 1 ? '#107100' : '#410000' }]}>
+                {activePlayer === 1 ? 'TU TURNO' : 'TURNO RIVAL'}
+              </Text>
+            </View>
+
+            {/* Score Box */}
+            <View style={styles.scoreBox}>
+              <View style={styles.rimLight} />
+              <Text style={styles.scoreNumber}>{score[1]}</Text>
+              <Text style={styles.scoreDivider}>-</Text>
+              <Text style={styles.scoreNumber}>{score[2]}</Text>
+            </View>
+          </View>
+
+          {/* AWAY Team */}
+          <View style={styles.teamSectionRight}>
+            <Text style={styles.teamLabel}>{mode === '2P' ? 'P2' : 'CPU'}</Text>
+            <View style={styles.teamAvatar}>
+              <ChapaModular size={48} FlagSvg={team2.svg} fallbackColor={team2.colorPrimary} />
+            </View>
+          </View>
+        </View>
       </View>
 
       {winner ? (
-        <View style={styles.winnerBox}>
-          <Text style={styles.winnerText}>
-            {winner === 1 ? '¡HAS GANADO!' : (mode === '1P' ? '¡HAS PERDIDO!' : '¡GANA EL JUGADOR 2!')}
-          </Text>
-          {winner === 1 && mode === '1P' && (
-            <Text style={[styles.winnerText, { fontSize: 24, color: '#FFD700', marginTop: 10 }]}>
-              +100 🪙
-            </Text>
-          )}
-
-          <View style={styles.statsContainer}>
-             <Text style={styles.statsTitle}>Estadísticas del Partido</Text>
-             
-             <View style={styles.statsRow}>
-                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].shots}</Text>
-                <Text style={styles.statLabel}>Tiros</Text>
-                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].shots}</Text>
-             </View>
-             <View style={styles.statsRow}>
-                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].ballTouches}</Text>
-                <Text style={styles.statLabel}>Toques de Balón</Text>
-                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].ballTouches}</Text>
-             </View>
-             <View style={styles.statsRow}>
-                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].shotsOnTarget}</Text>
-                <Text style={styles.statLabel}>Tiros a Puerta</Text>
-                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].shotsOnTarget}</Text>
-             </View>
-             <View style={styles.statsRow}>
-                <Text style={[styles.statValue, { color: team1.colorPrimary }]}>{matchStats[1].blocks}</Text>
-                <Text style={styles.statLabel}>Paradas</Text>
-                <Text style={[styles.statValue, { color: team2.colorPrimary }]}>{matchStats[2].blocks}</Text>
-             </View>
-          </View>
-
-          <TouchableOpacity style={styles.button} onPress={handleBackToMenu}>
-            <Text style={styles.buttonText}>Volver al Inicio</Text>
-          </TouchableOpacity>
-        </View>
+        <MatchResultOverlay 
+          winner={winner}
+          p1Score={score[1]}
+          p2Score={score[2]}
+          p1Image={team1.image}
+          p2Image={team2.image}
+          p1Svg={team1.svg}
+          p2Svg={team2.svg}
+          matchStats={matchStats}
+          xpGained={matchXpGained}
+          level={useChapasStore.getState().level}
+          onContinue={handleBackToMenu}
+          onRematch={handleRematch}
+        />
       ) : (
         <View style={styles.boardWrapper}>
           
@@ -740,6 +807,18 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
       )}
+      
+      {/* Bottom Controls */}
+      {!winner && (
+        <View style={styles.bottomControls}>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => navigation.navigate('MainTabs')}>
+            <Ionicons name="menu" size={28} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn}>
+            <Ionicons name="volume-mute" size={28} color="#000" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -747,27 +826,130 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#fcf9f8',
+    paddingBottom: 60,
+  },
+  scoreboardContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 40,
+    marginBottom: 10,
+    zIndex: 50,
+  },
+  scoreboardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 600,
+    backgroundColor: '#fcf9f8',
+    borderWidth: 4,
+    borderColor: '#000',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+  },
+  scoreSide: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  teamSectionRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  teamAvatar: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreboard: {
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  teamLabel: {
+    fontSize: 24,
+    fontStyle: 'italic',
+    fontWeight: '900',
+    color: '#1c1b1b',
+  },
+  centerSection: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -30,
+    zIndex: 10,
+  },
+  turnPill: {
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: '#000',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  turnPillText: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  scoreBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '95%',
-    backgroundColor: colors.surface,
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-    marginTop: 10,
+    alignItems: 'center',
+    backgroundColor: '#fcf9f8',
+    borderWidth: 4,
+    borderColor: '#000',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  scoreText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  rimLight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    zIndex: 1,
   },
-  turnText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  scoreNumber: {
+    fontSize: 32,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: '#1c1b1b',
+  },
+  scoreDivider: {
+    fontSize: 32,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: '#1c1b1b',
   },
   boardWrapper: {
     padding: 0,
@@ -775,6 +957,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   board: {
     width: BOARD_WIDTH,
@@ -885,32 +1068,41 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   winnerBox: {
-    position: 'absolute',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    padding: 30,
-    borderRadius: 20,
-    zIndex: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: colors.blueAccent,
+    borderRadius: 8,
+    borderWidth: 3,
+    borderColor: '#000',
+    marginTop: 10,
   },
   winnerText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
-  button: {
-    backgroundColor: colors.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+  bottomControls: {
+    position: 'absolute',
+    bottom: 10,
+    left: 20,
+    flexDirection: 'row',
+    gap: 15,
+  },
+  controlBtn: {
+    width: 50,
+    height: 50,
     borderRadius: 25,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  buttonText: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   statsContainer: {
     width: '100%',
