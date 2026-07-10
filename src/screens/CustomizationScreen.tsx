@@ -7,6 +7,7 @@ import { ChapaModular } from '../components/ChapaModular';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppHeader } from '../components/AppHeader';
 
 const MiniPitch = ({ formationId, isSelected }: { formationId: string, isSelected: boolean }) => {
   const pitchBg = isSelected ? '#39ff14' : '#e5e2e1'; // primary-container vs surface-variant
@@ -61,19 +62,9 @@ export const CustomizationScreen: React.FC<{ navigation: any }> = ({ navigation 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)} style={styles.avatarWrapper}>
-              {user?.profilePictureUrl ? (
-                <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImg} />
-              ) : (
-                <Text style={{ fontSize: 24 }}>👤</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.headerTitle}>CLUB</Text>
-          <View style={[styles.headerRight, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+        <AppHeader 
+          title="CLUB" 
+          rightAction={
             <TouchableOpacity 
               onPress={handleWatchAd} 
               style={{
@@ -92,14 +83,8 @@ export const CustomizationScreen: React.FC<{ navigation: any }> = ({ navigation 
             >
               <Text style={{ fontSize: 14, fontWeight: '900', color: '#1c1b1b' }}>▶ AD</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('CoinShop' as never)} activeOpacity={0.8}>
-              <View style={styles.coinsBadge}>
-                <Ionicons name="logo-bitcoin" size={16} color="#e9c400" />
-                <Text style={styles.coinsText}>{coins.toLocaleString()} COINS</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
+          }
+        />
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* MY TEAMS */}
@@ -224,78 +209,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#fcf9f8',
-    borderBottomWidth: 4,
-    borderBottomColor: '#1c1b1b',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-    zIndex: 10,
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#106e00',
-    textTransform: 'uppercase',
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  avatarWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#000',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarImg: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  coinsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eae7e7',
-    borderWidth: 2,
-    borderColor: '#1c1b1b',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    shadowColor: '#1c1b1b',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  coinsText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#1c1b1b',
-    marginLeft: 4,
   },
   scrollContent: {
-    paddingBottom: 120,
-    paddingTop: 24,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
   section: {
     marginBottom: 40,

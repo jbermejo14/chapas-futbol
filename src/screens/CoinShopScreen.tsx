@@ -4,7 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useChapasStore } from '../store/chapasStore';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppHeader } from '../components/AppHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CoinShop'>;
 
@@ -14,8 +14,7 @@ const IMG_10000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCptH1aUBn
 const IMG_25000 = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTlOk39BPOmgcHJrewbndvXK_dAE5fCj4fE_BD_JHCJl-RP3ke4jTIr72vhF5GTZGYPbNZDcbYZtB6-RMO7E1K3GDAOJ-t9eDD2yujo_AwBiMEtVYY_0YUh8cD1-R8mcj68sbPmkP1PKPTAisFxwEGVLtQHHVXASac4f7r3LvhpABDUyAfIm5-ZfRyZt57nXeUIan7fFEKV2JcETfkf-EcUZRXHafaWmjYLpQRhOAk2Z2TIuwnnIN6rt_uL8HIyWLfAPCpBPTuZJo';
 
 export const CoinShopScreen: React.FC<Props> = ({ navigation }) => {
-  const { coins, addCoins, user } = useChapasStore();
-  const insets = useSafeAreaInsets();
+  const { addCoins } = useChapasStore();
 
   const handleBuy = (amount: number) => {
     // Simulated purchase
@@ -25,23 +24,7 @@ export const CoinShopScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)} style={styles.avatarWrapper}>
-            {user?.profilePictureUrl ? (
-              <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImg} />
-            ) : (
-              <Text style={{ fontSize: 24 }}>👤</Text>
-            )}
-          </TouchableOpacity>
-          
-          <Text style={styles.headerTitle}>COIN SHOP</Text>
-          
-          <View style={styles.coinsBadge}>
-            <Text style={styles.coinsText}>{coins.toLocaleString()}</Text>
-            <Ionicons name="logo-bitcoin" size={16} color="#705d00" />
-          </View>
-        </View>
+        <AppHeader title="COIN SHOP" showBack />
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
@@ -156,64 +139,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#fcf9f8',
-    borderBottomWidth: 4,
-    borderBottomColor: '#1c1b1b',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    shadowColor: '#1c1b1b',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-    zIndex: 50,
-  },
-  avatarWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 4,
-    borderColor: '#1c1b1b',
-    backgroundColor: '#39ff14', // fallback
-    overflow: 'hidden',
-  },
-  avatarImg: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#106e00',
-    textTransform: 'uppercase',
-  },
-  coinsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fcd400',
-    borderWidth: 2,
-    borderColor: '#1c1b1b',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    shadowColor: '#1c1b1b',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  coinsText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#1c1b1b',
-    marginRight: 4,
   },
   scrollContent: {
     paddingHorizontal: 16,

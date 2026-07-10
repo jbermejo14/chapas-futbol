@@ -8,7 +8,7 @@ import { useChapasStore } from '../store/chapasStore';
 import { TEAMS, TeamId } from '../data/chapasData';
 import { ChapaModular } from '../components/ChapaModular';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppHeader } from '../components/AppHeader';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'ShopTab'>,
@@ -20,7 +20,6 @@ const { width, height } = Dimensions.get('window');
 
 export const ShopScreen: React.FC<Props> = ({ navigation }) => {
   const { coins, unlockedTeams, unlockTeam, deductCoins, user } = useChapasStore();
-  const insets = useSafeAreaInsets();
 
   const handleBuy = (teamId: TeamId, teamName: string) => {
     if (coins < TEAM_PRICE) {
@@ -48,29 +47,7 @@ export const ShopScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-        <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center'}}>
-            {user?.profilePictureUrl ? (
-              <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImage} />
-            ) : (
-              <Text style={{ fontSize: 24 }}>👤</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.headerTitle}>PRO STORE</Text>
-
-        <View style={styles.coinsBadgeWrapper}>
-          <View style={styles.coinsBadgeShadow} />
-          <View style={styles.coinsBadge}>
-            <View style={styles.rimLight} />
-            <Ionicons name="logo-usd" size={16} color="#2ae500" />
-            <Text style={styles.coinsText}>{coins.toLocaleString()} COINS</Text>
-          </View>
-        </View>
-      </View>
+      <AppHeader title="TIENDA" />
 
       {/* Grid */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -139,68 +116,11 @@ export const ShopScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e5e2e1', // surface-variant
+    letterSpacing: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fcf9f8',
-    borderBottomWidth: 4,
-    borderBottomColor: '#1c1b1b',
-    paddingHorizontal: 15,
-    paddingBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-    zIndex: 10,
-  },
-  avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 4,
-    borderColor: '#1c1b1b',
-    overflow: 'hidden',
-    backgroundColor: '#fcd400',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
-    fontWeight: '900',
-    color: '#106e00',
-  },
-  coinsBadgeWrapper: {
-    position: 'relative',
-  },
-  coinsBadgeShadow: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: -4,
-    bottom: -4,
-    backgroundColor: '#1c1b1b',
-    borderRadius: 20,
-  },
-  coinsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fcd400',
-    borderWidth: 4,
-    borderColor: '#1c1b1b',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 4,
-    position: 'relative',
-    overflow: 'hidden',
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
   },
   rimLight: {
     position: 'absolute',
@@ -221,16 +141,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 100,
     borderTopRightRadius: 100,
     zIndex: 1,
-  },
-  coinsText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#6e5c00',
-    letterSpacing: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
   },
   grid: {
     flexDirection: 'row',

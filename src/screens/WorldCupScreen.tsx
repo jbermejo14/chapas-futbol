@@ -7,7 +7,7 @@ import { useChapasStore, TournamentMatch, TournamentRound } from '../store/chapa
 import { TEAMS, TeamId } from '../data/chapasData';
 import { ChapaModular } from '../components/ChapaModular';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppHeader } from '../components/AppHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorldCup'>;
 
@@ -21,7 +21,6 @@ const ENTRY_FEE = 250;
 
 export const WorldCupScreen: React.FC<Props> = ({ navigation }) => {
   const { coins, deductCoins, user, tournament, startTournament, preferredTeam } = useChapasStore();
-  const insets = useSafeAreaInsets();
   
   const handleEnroll = () => {
     if (!COUNTRY_TEAMS.includes(preferredTeam)) {
@@ -122,12 +121,22 @@ export const WorldCupScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderMatchCard = (match: TournamentMatch, tilt: number) => {
+  const renderMatchCard = (match: TournamentMatch, tilt: number, matchRound: TournamentRound) => {
+    const isCurrentActive = match.isPlayerMatch && tournament.round === matchRound;
+    
     return (
-      <View key={match.id} style={[styles.matchCard, { transform: [{ rotate: `${tilt}deg` }] }]}>
-        {renderTeamBox(match.team1, match.score1, match.team1 === tournament.playerTeam)}
-        <View style={{height: 4}} />
-        {renderTeamBox(match.team2, match.score2, match.team2 === tournament.playerTeam)}
+      <View key={match.id} style={{ alignItems: 'center', marginVertical: 10 }}>
+        <View style={[styles.matchCard, { transform: [{ rotate: `${tilt}deg` }] }]}>
+          {renderTeamBox(match.team1, match.score1, match.team1 === tournament.playerTeam)}
+          <View style={{height: 4}} />
+          {renderTeamBox(match.team2, match.score2, match.team2 === tournament.playerTeam)}
+        </View>
+        
+        {isCurrentActive && tournament.round !== 'champion' && (
+          <TouchableOpacity style={styles.playBtnInline} onPress={handlePlayMatch}>
+            <Text style={styles.playBtnTextInline}>JUGAR</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -140,66 +149,42 @@ export const WorldCupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={32} color="#106e00" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>MUNDIAL</Text>
-        </View>
-
-        <View style={styles.coinsBadge}>
-          <Ionicons name="logo-usd" size={16} color="#705d00" />
-          <Text style={styles.coinsText}>{coins.toLocaleString()}</Text>
-        </View>
-      </View>
+      <AppHeader title="MUNDIAL" showBack />
 
       {/* Content */}
-      <ScrollView horizontal contentContainerStyle={styles.scrollContent} showsHorizontalScrollIndicator={false}>
+      <ScrollView horizontal bounces={false} contentContainerStyle={{flexGrow: 1}} showsHorizontalScrollIndicator={false}>
+        <ScrollView bounces={false} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {!tournament.isActive ? (
-          <View style={styles.enrollContainer}>
-            <View style={styles.enrollCard}>
-              <Ionicons name="earth" size={80} color="#ff3b30" />
-              <Text style={styles.enrollTitle}>LA COPA DEL MUNDO</Text>
-              <Text style={styles.enrollDesc}>16 Selecciones. Solo un ganador.</Text>
-              <TouchableOpacity style={styles.enrollBtn} onPress={handleEnroll}>
-                <Text style={styles.enrollBtnText}>INSCRIBIRSE (250 🪙)</Text>
-              </TouchableOpacity>
+          {!tournament.isActive ? (
+            <View style={styles.enrollContainer}>
+              <View style={styles.enrollCard}>
+                <Ionicons name="earth" size={80} color="#ff3b30" />
+                <Text style={styles.enrollTitle}>LA COPA DEL MUNDO</Text>
+                <Text style={styles.enrollDesc}>16 Selecciones. Solo un ganador.</Text>
+                <TouchableOpacity style={styles.enrollBtn} onPress={handleEnroll}>
+                  <Text style={styles.enrollBtnText}>INSCRIBIRSE (250 🪙)</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ) : (
-          <View style={styles.bracketContainer}>
-            {/* OCTAVOS */}
-            <View style={styles.roundColumn}>
-              <Text style={styles.roundTitle}>OCTAVOS</Text>
-              {tournament.bracket.octavos.map((m, i) => renderMatchCard(m, getTilt(i)))}
-            </View>
-            
-            {/* CUARTOS */}
-            <View style={styles.roundColumn}>
-              <Text style={styles.roundTitle}>CUARTOS</Text>
-              {tournament.bracket.cuartos.map((m, i) => renderMatchCard(m, getTilt(i)))}
-            </View>
-            
-            {/* SEMIS */}
-            <View style={styles.roundColumn}>
-              <Text style={styles.roundTitle}>SEMIS</Text>
-              {tournament.bracket.semis.map((m, i) => renderMatchCard(m, getTilt(i)))}
-            </View>
-            
-            {/* FINAL */}
-            <View style={styles.roundColumn}>
-              <Text style={styles.roundTitle}>FINAL</Text>
-              <View style={styles.finalWrapper}>
-                {tournament.bracket.final.map((m, i) => renderMatchCard(m, getTilt(i)))}
-                
-                {tournament.round !== 'champion' && (
-                  <TouchableOpacity style={styles.playBtn} onPress={handlePlayMatch}>
-                    <Text style={styles.playBtnText}>JUGAR PARTIDO</Text>
-                  </TouchableOpacity>
-                )}
+          ) : (
+            <View style={styles.treeContainer}>
+              {/* Lado Izquierdo */}
+              <View style={styles.treeSide}>
+                <View style={styles.roundColumn}>
+                  {tournament.bracket.octavos.slice(0,4).map((m, i) => renderMatchCard(m, getTilt(i), 'octavos'))}
+                </View>
+                <View style={[styles.roundColumn, { justifyContent: 'space-around' }]}>
+                  {tournament.bracket.cuartos.slice(0,2).map((m, i) => renderMatchCard(m, getTilt(i), 'cuartos'))}
+                </View>
+                <View style={[styles.roundColumn, { justifyContent: 'center' }]}>
+                  {tournament.bracket.semis.slice(0,1).map((m, i) => renderMatchCard(m, getTilt(i), 'semis'))}
+                </View>
+              </View>
+
+              {/* Centro: Final */}
+              <View style={styles.treeCenter}>
+                <Text style={styles.roundTitleCenter}>FINAL</Text>
+                {tournament.bracket.final.map((m, i) => renderMatchCard(m, getTilt(i), 'final'))}
                 
                 {tournament.round === 'champion' && (
                   <View style={styles.championBox}>
@@ -208,9 +193,22 @@ export const WorldCupScreen: React.FC<Props> = ({ navigation }) => {
                   </View>
                 )}
               </View>
+
+              {/* Lado Derecho */}
+              <View style={[styles.treeSide, { flexDirection: 'row-reverse' }]}>
+                <View style={styles.roundColumn}>
+                  {tournament.bracket.octavos.slice(4,8).map((m, i) => renderMatchCard(m, getTilt(i), 'octavos'))}
+                </View>
+                <View style={[styles.roundColumn, { justifyContent: 'space-around' }]}>
+                  {tournament.bracket.cuartos.slice(2,4).map((m, i) => renderMatchCard(m, getTilt(i), 'cuartos'))}
+                </View>
+                <View style={[styles.roundColumn, { justifyContent: 'center' }]}>
+                  {tournament.bracket.semis.slice(1,2).map((m, i) => renderMatchCard(m, getTilt(i), 'semis'))}
+                </View>
+              </View>
             </View>
-          </View>
-        )}
+          )}
+        </ScrollView>
       </ScrollView>
     </View>
   );
@@ -221,51 +219,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fcf9f8',
   },
-  header: {
-    backgroundColor: '#fcf9f8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 4,
-    borderBottomColor: '#1c1b1b',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-  },
-  headerTitle: {
-    fontFamily: 'Anton',
-    fontSize: 28,
-    color: '#106e00',
-    fontStyle: 'italic',
-  },
-  coinsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fcd400',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#1c1b1b',
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  coinsText: {
-    fontFamily: 'Space Grotesk',
-    fontWeight: '700',
-    fontSize: 14,
-    marginLeft: 4,
-  },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   enrollContainer: {
     width: Dimensions.get('window').width - 40,
@@ -317,25 +275,32 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#000',
   },
-  bracketContainer: {
+  treeContainer: {
     flexDirection: 'row',
-    gap: 40,
-    height: 650,
+    alignItems: 'stretch',
+    minWidth: 900,
+  },
+  treeSide: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  treeCenter: {
+    width: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 10,
   },
   roundColumn: {
-    width: 180,
+    width: 140,
     justifyContent: 'space-around',
-    height: '100%',
+    paddingVertical: 10,
   },
-  roundTitle: {
+  roundTitleCenter: {
     fontFamily: 'Anton',
     fontSize: 24,
-    fontStyle: 'italic',
-    color: '#3c4b35',
-    textAlign: 'center',
-    position: 'absolute',
-    top: -10,
-    width: '100%',
+    color: '#106e00',
+    marginBottom: 20,
   },
   matchCard: {
     backgroundColor: '#eae7e7',
@@ -374,28 +339,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#106e00',
   },
-  finalWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  playBtn: {
-    backgroundColor: '#c00100',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderWidth: 4,
+  playBtnInline: {
+    backgroundColor: '#ff3b30',
+    borderWidth: 3,
     borderColor: '#1c1b1b',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: -10,
+    zIndex: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    transform: [{ rotate: '1.5deg' }],
+    elevation: 3,
   },
-  playBtnText: {
+  playBtnTextInline: {
     fontFamily: 'Anton',
-    fontSize: 20,
+    fontSize: 16,
     color: '#fff',
+    letterSpacing: 1,
   },
   championBox: {
     backgroundColor: '#fff',
