@@ -38,6 +38,9 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
         if (route.name === 'HomeTab') {
           iconName = isFocused ? 'home' : 'home-outline';
           labelOverride = 'JUGAR';
+        } else if (route.name === 'TournamentsTab') {
+          iconName = isFocused ? 'trophy' : 'trophy-outline';
+          labelOverride = 'TORNEOS';
         } else if (route.name === 'CustomizationTab') {
           iconName = isFocused ? 'shield' : 'shield-outline';
           labelOverride = 'CLUB';
@@ -113,12 +116,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   icon: {
-    marginBottom: 2,
+    marginBottom: 0,
   },
   labelText: {
-    fontSize: 11,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontFamily: 'Anton',
+    fontSize: 10,
+    marginTop: 2,
     letterSpacing: 0.5,
   },
   labelTextActive: {

@@ -12,6 +12,7 @@ import { CustomizationScreen } from '../screens/CustomizationScreen';
 import { ArenaScreen } from '../screens/ArenaScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { CoinShopScreen } from '../screens/CoinShopScreen';
+import { TournamentsScreen } from '../screens/TournamentsScreen';
 import { colors } from '../theme/colors';
 import { TeamId, FormationId, FieldId } from '../data/chapasData';
 import { useChapasStore } from '../store/chapasStore';
@@ -22,6 +23,7 @@ import { HypercasualButton } from '../components/HypercasualButton';
 
 export type TabParamList = {
   HomeTab: undefined;
+  TournamentsTab: undefined;
   FriendsTab: undefined;
   CustomizationTab: undefined;
   ShopTab: undefined;
@@ -124,6 +126,14 @@ const MainTabs = () => {
         component={HomeScreen} 
         options={{ 
           title: 'JUGAR',
+        }} 
+      />
+      <Tab.Screen 
+        name="TournamentsTab" 
+        component={TournamentsScreen} 
+        options={{ 
+          title: 'TORNEOS',
+          headerShown: false,
         }} 
       />
       <Tab.Screen 
