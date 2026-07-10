@@ -21,7 +21,8 @@ interface MatchResultOverlayProps {
   xpGained?: number;
   level?: number;
   onContinue: () => void;
-  onRematch: () => void;
+  onRematch?: () => void;
+  hideRematch?: boolean;
 }
 
 export const MatchResultOverlay: React.FC<MatchResultOverlayProps> = ({
@@ -36,7 +37,8 @@ export const MatchResultOverlay: React.FC<MatchResultOverlayProps> = ({
   xpGained,
   level,
   onContinue,
-  onRematch
+  onRematch,
+  hideRematch
 }) => {
   const insets = useSafeAreaInsets();
   
@@ -165,25 +167,26 @@ export const MatchResultOverlay: React.FC<MatchResultOverlayProps> = ({
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.btnWrapper} onPress={onContinue} activeOpacity={0.8}>
+          <View style={styles.btnWrapper}>
             <View style={styles.btnShadow} />
-            <View style={[styles.btn, { backgroundColor: '#39ff14' }]}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: '#39ff14' }]} onPress={onContinue} activeOpacity={0.8}>
               <View style={styles.btnRim} />
               <Text style={styles.btnText}>CONTINUE</Text>
-              <Ionicons name="arrow-forward" size={24} color="#022100" style={styles.btnIcon} />
-            </View>
-          </TouchableOpacity>
+              <Ionicons name="play-forward" size={24} color="#022100" style={styles.btnIcon} />
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity style={styles.btnWrapper} onPress={onRematch} activeOpacity={0.8}>
-            <View style={styles.btnShadow} />
-            <View style={[styles.btn, { backgroundColor: '#fcd400' }]}>
-              <View style={styles.btnRim} />
-              <Text style={styles.btnText}>REMATCH</Text>
-              <Ionicons name="refresh" size={24} color="#6e5c00" style={styles.btnIcon} />
+          {!hideRematch && onRematch && (
+            <View style={styles.btnWrapper}>
+              <View style={styles.btnShadow} />
+              <TouchableOpacity style={[styles.btn, { backgroundColor: '#fcd400' }]} onPress={onRematch} activeOpacity={0.8}>
+                <View style={styles.btnRim} />
+                <Text style={styles.btnText}>REMATCH</Text>
+                <Ionicons name="refresh" size={24} color="#022100" style={styles.btnIcon} />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          )}
         </View>
-
       </View>
     </View>
   );

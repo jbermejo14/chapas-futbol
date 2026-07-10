@@ -337,13 +337,31 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
             if (newScore[1] >= 2) {
               setWinner(1);
               addWin();
-              const reward = (route.params as any).entryFee ? (route.params as any).entryFee * 2 : 0;
-              if (reward > 0) addCoins(reward);
+
+              if (mode === 'TOURNAMENT') {
+                const tRound = useChapasStore.getState().tournament.round;
+                const bracket = useChapasStore.getState().tournament.bracket;
+                const playerTeam = useChapasStore.getState().tournament.playerTeam;
+                
+                let prize = 0;
+                if (tRound === 'octavos') prize = 50;
+                else if (tRound === 'cuartos') prize = 100;
+                else if (tRound === 'semis') prize = 250;
+                else if (tRound === 'final') prize = 1000;
+                
+                if (prize > 0) addCoins(prize);
+                if (playerTeam) useChapasStore.getState().advanceTournament(playerTeam, bracket);
+              } else {
+                const reward = (route.params as any).entryFee ? (route.params as any).entryFee * 2 : 0;
+                if (reward > 0) addCoins(reward);
+              }
             } else if (newScore[2] >= 2) {
               setWinner(2);
               if (mode === '2P') {
-                 // In 2P mode, if P2 wins, maybe P2 gets the win? For now just use addWin
                  addWin();
+              }
+              if (mode === 'TOURNAMENT') {
+                useChapasStore.getState().abandonTournament();
               }
             }
           } else {
@@ -685,18 +703,23 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {winner ? (
         <MatchResultOverlay 
-          winner={winner}
-          p1Score={score[1]}
+          winner={winner} 
+          p1Score={score[1]} 
           p2Score={score[2]}
-          p1Image={team1.image}
-          p2Image={team2.image}
-          p1Svg={team1.svg}
-          p2Svg={team2.svg}
-          matchStats={matchStats}
+          p1Svg={TEAMS[route.params.p1Team].svg}
+          p2Svg={TEAMS[route.params.p2Team].svg}
+          matchStats={matchStatsRef.current}
           xpGained={matchXpGained}
-          level={useChapasStore.getState().level}
-          onContinue={handleBackToMenu}
+          level={level}
+          onContinue={() => {
+            if (mode === 'TOURNAMENT') {
+              navigation.navigate('WorldCup' as never);
+            } else {
+              navigation.goBack();
+            }
+          }}
           onRematch={handleRematch}
+          hideRematch={mode === 'TOURNAMENT'}
         />
       ) : (
         <View style={styles.boardWrapper}>

@@ -13,6 +13,7 @@ import { ArenaScreen } from '../screens/ArenaScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { CoinShopScreen } from '../screens/CoinShopScreen';
 import { TournamentsScreen } from '../screens/TournamentsScreen';
+import { WorldCupScreen } from '../screens/WorldCupScreen';
 import { colors } from '../theme/colors';
 import { TeamId, FormationId, FieldId } from '../data/chapasData';
 import { useChapasStore } from '../store/chapasStore';
@@ -33,8 +34,9 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Profile: undefined;
   Setup: { mode: '1P' | '2P' | 'ONLINE' };
-  Game: { mode: '1P' | '2P' | 'ONLINE', p1Team: TeamId, p2Team: TeamId, p1Formation: FormationId, p2Formation: FormationId, fieldId: FieldId, matchId?: string, entryFee?: number };
+  Game: { mode: '1P' | '2P' | 'ONLINE' | 'TOURNAMENT', p1Team: TeamId, p2Team: TeamId, p1Formation: FormationId, p2Formation: FormationId, fieldId: FieldId, matchId?: string, entryFee?: number };
   CoinShop: undefined;
+  WorldCup: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -280,7 +282,16 @@ export const AppNavigator = () => {
         <Stack.Screen 
           name="CoinShop" 
           component={CoinShopScreen} 
-          options={{ title: 'COIN SHOP', headerShown: false }} 
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="WorldCup" 
+          component={WorldCupScreen} 
+          options={{
+            headerShown: false,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

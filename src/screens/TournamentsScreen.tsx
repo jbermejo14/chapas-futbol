@@ -24,8 +24,12 @@ export const TournamentsScreen: React.FC<Props> = ({ navigation }) => {
   const { coins, user } = useChapasStore();
   const insets = useSafeAreaInsets();
 
-  const handleTournamentPress = (title: string) => {
-    Alert.alert('¡Próximamente!', `El torneo ${title} se encuentra en construcción. ¡Vuelve pronto para competir por la gloria!`);
+  const handleTournamentPress = (id: string, title: string) => {
+    if (id === 'world') {
+      navigation.navigate('WorldCup' as never);
+    } else {
+      Alert.alert('¡Próximamente!', `El torneo ${title} se encuentra en construcción. ¡Vuelve pronto para competir por la gloria!`);
+    }
   };
 
   return (
@@ -65,7 +69,7 @@ export const TournamentsScreen: React.FC<Props> = ({ navigation }) => {
             key={t.id} 
             style={styles.cardWrapper}
             activeOpacity={0.8}
-            onPress={() => handleTournamentPress(t.title)}
+            onPress={() => handleTournamentPress(t.id, t.title)}
           >
             <View style={styles.cardShadow} />
             <View style={[styles.card, { backgroundColor: t.bg }]}>

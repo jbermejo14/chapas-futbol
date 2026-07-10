@@ -12,6 +12,30 @@ export interface UserProfile {
   profilePictureUrl?: string | null;
 }
 
+export type TournamentRound = 'octavos' | 'cuartos' | 'semis' | 'final' | 'champion';
+
+export interface TournamentMatch {
+  id: string;
+  team1: TeamId | null;
+  team2: TeamId | null;
+  score1?: number;
+  score2?: number;
+  winner?: TeamId;
+  isPlayerMatch?: boolean;
+}
+
+export interface TournamentState {
+  isActive: boolean;
+  round: TournamentRound;
+  playerTeam: TeamId | null;
+  bracket: {
+    octavos: TournamentMatch[];
+    cuartos: TournamentMatch[];
+    semis: TournamentMatch[];
+    final: TournamentMatch[];
+  };
+}
+
 interface ChapasState {
   unlockedTeams: TeamId[];
   unlockedArenas: ArenaId[];
@@ -23,6 +47,7 @@ interface ChapasState {
   preferredFormation: FormationId;
   user: UserProfile | null;
   friends: string[];
+  tournament: TournamentState;
   addWin: () => void;
   addCoins: (amount: number) => void;
   deductCoins: (amount: number) => void;
@@ -37,6 +62,9 @@ interface ChapasState {
   removeFriend: (userId: string) => void;
   resetProgress: () => void;
   initializeAuth: () => void;
+  startTournament: (playerTeam: TeamId, bracket: TournamentState['bracket']) => void;
+  advanceTournament: (winner: TeamId, newBracket: TournamentState['bracket']) => void;
+  abandonTournament: () => void;
 }
 
 export const useChapasStore = create<ChapasState>()(
@@ -52,6 +80,87 @@ export const useChapasStore = create<ChapasState>()(
       preferredFormation: '1-2-1-1',
       user: null,
       friends: [],
+      tournament: {
+        isActive: false,
+        round: 'octavos',
+        playerTeam: null,
+        bracket: { octavos: [], cuartos: [], semis: [], final: [] }
+      },
+
+      startTournament: (playerTeam, bracket) => set({
+        tournament: {
+          isActive: true,
+          round: 'octavos',
+          playerTeam,
+          bracket
+        }
+      }),
+
+      advanceTournament: (winner, currentBracket) => set((state) => {
+        const t = state.tournament;
+        if (!t.isActive) return state;
+
+        let nextRound: TournamentRound = 'octavos';
+        let newBracket = { ...currentBracket };
+        
+        // Simular siguiente ronda
+        const simMatch = (m1: TournamentMatch, m2: TournamentMatch, nextId: string, isPlayer: boolean) => {
+          const w1 = m1.isPlayerMatch ? winner : (Math.random() > 0.5 ? m1.team1 : m1.team2);
+          const w2 = m2.isPlayerMatch ? winner : (Math.random() > 0.5 ? m2.team1 : m2.team2);
+          return {
+            id: nextId,
+            team1: w1,
+            team2: w2,
+            isPlayerMatch: isPlayer
+          } as TournamentMatch;
+        };
+
+        if (t.round === 'octavos') {
+          nextRound = 'cuartos';
+          newBracket.cuartos = [];
+          for (let i=0; i<4; i++) {
+            const m1 = currentBracket.octavos[i*2];
+            const m2 = currentBracket.octavos[i*2+1];
+            newBracket.cuartos.push(simMatch(m1, m2, `cuartos-${i}`, !!m1.isPlayerMatch || !!m2.isPlayerMatch));
+          }
+        }
+        else if (t.round === 'cuartos') {
+          nextRound = 'semis';
+          newBracket.semis = [];
+          for (let i=0; i<2; i++) {
+            const m1 = currentBracket.cuartos[i*2];
+            const m2 = currentBracket.cuartos[i*2+1];
+            newBracket.semis.push(simMatch(m1, m2, `semis-${i}`, !!m1.isPlayerMatch || !!m2.isPlayerMatch));
+          }
+        }
+        else if (t.round === 'semis') {
+          nextRound = 'final';
+          newBracket.final = [];
+          const m1 = currentBracket.semis[0];
+          const m2 = currentBracket.semis[1];
+          newBracket.final.push(simMatch(m1, m2, `final-0`, !!m1.isPlayerMatch || !!m2.isPlayerMatch));
+        }
+        else if (t.round === 'final') {
+          nextRound = 'champion';
+        }
+
+        return {
+          tournament: {
+            ...t,
+            round: nextRound,
+            bracket: newBracket
+          }
+        };
+      }),
+
+      abandonTournament: () => set({
+        tournament: {
+          isActive: false,
+          round: 'octavos',
+          playerTeam: null,
+          bracket: { octavos: [], cuartos: [], semis: [], final: [] }
+        }
+      }),
 
       addFriend: (userId) => set((state) => {
         if (state.friends.includes(userId)) return state;
